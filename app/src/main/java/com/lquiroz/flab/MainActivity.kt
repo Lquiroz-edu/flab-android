@@ -5,8 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
-import com.lquiroz.flab.fold.FoldSnapshot
-import com.lquiroz.flab.fold.rememberWindowLayoutInfo
+import com.lquiroz.flab.fold.rememberFoldSnapshot
 import com.lquiroz.flab.ui.home.FLabHomeScreen
 import com.lquiroz.flab.ui.theme.FLabTheme
 
@@ -16,8 +15,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FLabTheme {
-                val layoutInfo by rememberWindowLayoutInfo()
-                FLabHomeScreen(FoldSnapshot.from(layoutInfo))
+                val foldSnapshot by rememberFoldSnapshot()
+                FLabHomeScreen(foldSnapshot)
             }
         }
     }

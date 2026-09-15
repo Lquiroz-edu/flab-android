@@ -12,6 +12,8 @@ import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
 import androidx.window.layout.WindowLayoutInfo
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 enum class FoldPosture(val label: String) {
     Flat("Fully open"),
@@ -25,9 +27,11 @@ data class FoldSnapshot(
     val isSeparating: Boolean,
 ) {
     companion object {
+        val empty = FoldSnapshot(FoldPosture.NotDetected, "None", false)
+
         fun from(layoutInfo: WindowLayoutInfo): FoldSnapshot {
             val feature = layoutInfo.displayFeatures.filterIsInstance<FoldingFeature>().firstOrNull()
-                ?: return FoldSnapshot(FoldPosture.NotDetected, "None", false)
+                ?: return empty
 
             val posture = when (feature.state) {
                 FoldingFeature.State.FLAT -> FoldPosture.Flat
@@ -47,17 +51,19 @@ data class FoldSnapshot(
 }
 
 @Composable
-fun rememberWindowLayoutInfo(): State<WindowLayoutInfo> {
+fun rememberFoldSnapshot(): State<FoldSnapshot> {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
-    val flow: Flow<WindowLayoutInfo> = remember(context, activity) {
+    val flow: Flow<FoldSnapshot> = remember(context, activity) {
         if (activity == null) {
-            kotlinx.coroutines.flow.flowOf(WindowLayoutInfo(emptyList()))
+            flowOf(FoldSnapshot.empty)
         } else {
-            WindowInfoTracker.getOrCreate(context).windowLayoutInfo(activity)
+            WindowInfoTracker.getOrCreate(context)
+                .windowLayoutInfo(activity)
+                .map(FoldSnapshot::from)
         }
     }
-    return flow.collectAsState(initial = WindowLayoutInfo(emptyList()))
+    return flow.collectAsState(initial = FoldSnapshot.empty)
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
