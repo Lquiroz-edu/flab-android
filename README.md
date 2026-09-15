@@ -2,15 +2,16 @@
 
 F/LAB is an experimental Android platform for exploring continuity, motion, and adaptive experiences on foldable devices without replacing the identity of the underlying system.
 
-## First milestone
+## Motion Continuity V1
 
-The initial milestone provides:
+The current prototype provides:
 
 - A native Kotlin and Jetpack Compose application.
 - Edge-to-edge presentation with a small F/LAB visual language.
 - Responsive compact, medium, and expanded layouts.
 - Fold posture reporting through Jetpack WindowManager.
-- A local motion prototype that does not require accessibility, overlay, or root permissions.
+- A stateful Cover ↔ Inner continuity scene with adaptive motion and Flex posture feedback.
+- Selection, playback, and progress that survive folding and unfolding.
 - Continuous integration that tests, lints, and produces a downloadable debug APK.
 
 ## Build

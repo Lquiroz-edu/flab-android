@@ -19,4 +19,10 @@ class WindowModeTest {
     fun `expanded from 840 dp`() {
         assertEquals(WindowMode.Expanded, windowModeForWidth(840))
     }
+
+    @Test
+    fun `moment selection advances and wraps`() {
+        assertEquals(1, nextMomentIndex(current = 0, count = 3))
+        assertEquals(0, nextMomentIndex(current = 2, count = 3))
+    }
 }

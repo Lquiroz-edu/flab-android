@@ -16,3 +16,14 @@ F/LAB explores how foldable Android devices can feel more coherent, intentional,
 - M1: continuity and opening/closing motion prototype.
 - M2: performance baseline and device telemetry.
 - M3: opt-in experiments that interact with broader system surfaces.
+
+## V1 acceptance criteria
+
+F/LAB V1 focuses only on motion continuity inside the app:
+
+- The selected moment, playback state, and progress survive Cover ↔ Inner transitions.
+- The Cover surface prioritizes one thought and one action.
+- The Inner surface keeps the primary scene anchored while revealing navigation and context.
+- Opening, closing, rotation, and Flex posture never require restarting the task.
+- Motion runs only while F/LAB is visible and playback is active.
+- No overlay, accessibility service, launcher replacement, or root permission is required.
