@@ -36,6 +36,7 @@ class FoldService : AccessibilityService(), SensorEventListener,
     private var generation = 0
     private var lastCapture = -1000L
     private var size = ""
+    private var lastActiveSize = ""
     private var active = false
     private val pending = Runnable { capture() }
     private val watchdog = Runnable { clearOverlay() }
@@ -91,6 +92,9 @@ class FoldService : AccessibilityService(), SensorEventListener,
             "Sin sensor público · activación por cambio de pantalla"
         ModuleState.status.value = "Activado · vuelve a One UI y pliega el teléfono"
         size = displaySize()
+        val changedPanel = lastActiveSize.isNotEmpty() && lastActiveSize != size
+        lastActiveSize = size
+        if (changedPanel) schedule(180)
     }
 
     private fun stop() {
@@ -124,7 +128,10 @@ class FoldService : AccessibilityService(), SensorEventListener,
         size = next
         generation++
         clearOverlay()
-        if (canRun()) schedule(180)
+        if (canRun()) {
+            lastActiveSize = next
+            schedule(180)
+        }
     }
     override fun onDisplayAdded(displayId: Int) = Unit
     override fun onDisplayRemoved(displayId: Int) = Unit
@@ -152,7 +159,8 @@ class FoldService : AccessibilityService(), SensorEventListener,
                 override fun onSuccess(result: ScreenshotResult) {
                     val buffer = result.hardwareBuffer
                     try {
-                        if (token != generation || !canRun() || capturedSize != displaySize()) return
+                        if (token != generation || !canRun() || capturedSize != displaySize() ||
+                            SystemClock.elapsedRealtime() - lastCapture > 700L) return
                         val wrapped = Bitmap.wrapHardwareBuffer(buffer, result.colorSpace) ?: return
                         val bitmap = try { wrapped.copy(Bitmap.Config.ARGB_8888, false) }
                             finally { wrapped.recycle() }
