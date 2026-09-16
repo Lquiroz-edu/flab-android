@@ -1,3 +1,0 @@
-<resources>
-    <string name="fold_disclosure">F/LAB captura temporalmente la pantalla al plegar para mostrar una transición de blur. Las imágenes permanecen en memoria, no se guardan ni se envían. No lee el árbol de contenido, pulsa botones ni modifica otras apps. Puedes apagar el efecto en F/LAB o revocar este permiso aquí. No es una herramienta de asistencia para discapacidad.</string>
-</resources>

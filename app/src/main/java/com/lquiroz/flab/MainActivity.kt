@@ -1,137 +1,228 @@
 package com.lquiroz.flab
 
-import android.animation.ValueAnimator
+import android.app.WallpaperManager
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.os.Bundle
-import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.lquiroz.flab.motion.FrostView
-import com.lquiroz.flab.motion.ModuleState
+import com.lquiroz.flab.studio.FoldWallpaper
+import com.lquiroz.flab.studio.PageView
+import java.io.File
+
+private val Paper = Color(0xFFF5F4EE)
+private val Ink = Color(0xFF111111)
+private val Muted = Color(0xFF6E706F)
+private val Blue = Color(0xFF315CFF)
+private val Panel = Color(0xFFFFFFFF)
 
 class MainActivity : ComponentActivity() {
-    private var previewAnimation: ValueAnimator? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val prefs = getSharedPreferences("motion", MODE_PRIVATE)
-        setContent {
-            MaterialTheme(colorScheme = darkColorScheme(
-                primary = Color(0xFF9AE9DE), background = Color(0xFF101416),
-                surface = Color(0xFF1C2327), onSurface = Color(0xFFF1F5F4))) {
-                var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
-                var strength by remember { mutableFloatStateOf(prefs.getFloat("strength", 0.7f)) }
-                var disclose by remember { mutableStateOf(false) }
-                var preview by remember { mutableStateOf<FrostView?>(null) }
-                val connected by ModuleState.connected
-                val status by ModuleState.status
-                val sensor by ModuleState.sensor
-                Surface(Modifier.fillMaxSize()) {
-                    Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState())
-                        .padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Text("F/LAB", style = MaterialTheme.typography.displayMedium)
-                        Text("Movimiento suave · V1", style = MaterialTheme.typography.titleLarge)
-                        Text("Un instante de cristal difuminado al plegar. Tu One UI, tus apps.",
-                            style = MaterialTheme.typography.bodyLarge)
-                        Card {
-                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Activar movimiento", modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.titleMedium)
-                                    Switch(checked = enabled, onCheckedChange = { value ->
-                                        if (value && !prefs.getBoolean("consent", false)) disclose = true
-                                        else {
-                                            enabled = value
-                                            prefs.edit().putBoolean("enabled", value).apply()
-                                        }
-                                    })
-                                }
-                                Text(if (!enabled) "Apagado" else if (!connected)
-                                    "Falta habilitar F/LAB en Accesibilidad" else status)
-                                if (!connected) Button(onClick = { disclose = true }) {
-                                    Text("Configurar permiso")
-                                }
+        window.statusBarColor = android.graphics.Color.rgb(245, 244, 238)
+        window.navigationBarColor = android.graphics.Color.rgb(245, 244, 238)
+        setContent { Studio() }
+    }
+
+    @Composable
+    private fun Studio() {
+        val prefs = remember { getSharedPreferences("studio", MODE_PRIVATE) }
+        var preview by remember { mutableStateOf<PageView?>(null) }
+        var progress by remember { mutableFloatStateOf(1f) }
+        var blur by remember { mutableFloatStateOf(prefs.getFloat("blur", .45f)) }
+        var radius by remember { mutableFloatStateOf(prefs.getFloat("radius", .045f)) }
+        var dark by remember { mutableStateOf(prefs.getBoolean("dark", false)) }
+        var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", true)) }
+        var imageRevision by remember { mutableIntStateOf(0) }
+
+        val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            runCatching {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    File(filesDir, "landscape.jpg").outputStream().use { output -> input.copyTo(output) }
+                } ?: error("No se pudo abrir la imagen")
+            }.onSuccess {
+                imageRevision++
+                prefs.edit().putLong("image", System.currentTimeMillis()).apply()
+                preview?.renderer?.reload()
+                preview?.invalidate()
+            }
+        }
+
+        MaterialTheme(
+            colorScheme = lightColorScheme(
+                primary = Blue,
+                onPrimary = Color.White,
+                background = Paper,
+                onBackground = Ink,
+                surface = Panel,
+                onSurface = Ink,
+            ),
+        ) {
+            Surface(Modifier.fillMaxSize(), color = Paper) {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 22.dp, vertical = 18.dp),
+                ) {
+                    Text("F/LAB", fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 2.4.sp)
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Papel en\nmovimiento.",
+                        fontSize = 47.sp,
+                        lineHeight = 45.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-1.8).sp,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Una transición suave para abrir tu Fold. Desliza la imagen y ajusta cómo se siente.",
+                        color = Muted,
+                        fontSize = 16.sp,
+                        lineHeight = 23.sp,
+                    )
+                    Spacer(Modifier.height(28.dp))
+
+                    AndroidView(
+                        factory = { context ->
+                            PageView(context).also { view ->
+                                preview = view
+                                view.onProgress = { progress = it }
+                                view.renderer.blur = blur
+                                view.renderer.radius = radius
+                                view.renderer.dark = dark
+                                view.enabled = enabled
                             }
-                        }
-                        Text("Así se ve", style = MaterialTheme.typography.titleMedium)
-                        AndroidView(factory = { context ->
-                            FrostView(context, previewBitmap()).also { preview = it; it.strength = strength }
-                        }, update = { it.strength = strength }, modifier = Modifier.fillMaxWidth().height(210.dp))
-                        OutlinedButton(onClick = {
-                            previewAnimation?.cancel()
-                            previewAnimation = ValueAnimator.ofFloat(0f, 1f).apply {
-                                duration = 1000
-                                addUpdateListener { preview?.amount = kotlin.math.sin(
-                                    Math.PI * (it.animatedValue as Float)).toFloat() }
-                                start()
-                            }
-                        }, modifier = Modifier.fillMaxWidth()) { Text("Ver efecto · sin permisos") }
-                        Text("Intensidad", style = MaterialTheme.typography.titleMedium)
-                        Slider(value = strength, onValueChange = { strength = it }, valueRange = 0.2f..1.5f,
-                            onValueChangeFinished = { prefs.edit().putFloat("strength", strength).apply() })
-                        Text("Cómo usarlo", style = MaterialTheme.typography.titleMedium)
-                        Text("Actívalo, concede el permiso y vuelve a tu pantalla de inicio. Abre y cierra el Fold a velocidad normal. Puedes apagarlo aquí en cualquier momento.")
-                        Text("Transición temporizada", style = MaterialTheme.typography.titleMedium)
-                        Text("V1 reacciona al cambio de postura o pantalla. Con lecturas de 0°, 90° y 180° no sigue el ángulo exacto de tu mano. No altera el encendido de las pantallas ni el bloqueo de Samsung.")
-                        if (connected) Text(sensor, style = MaterialTheme.typography.bodySmall)
-                        Text("Privacidad", style = MaterialTheme.typography.titleMedium)
-                        Text("Usa una captura temporal en memoria para el efecto. No guarda imágenes ni las envía. Se omite en pantallas protegidas o bloqueadas. La capa deja pasar los toques y desaparece en menos de un segundo.")
-                        Text("Si Android bloquea el permiso: Ajustes → Aplicaciones → F/LAB → ⋮ → Permitir ajustes restringidos; después vuelve a Accesibilidad.", style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) {
-                            Text("Administrar o revocar permiso")
-                        }
-                        Text("F/LAB 1.0 · Independiente de Samsung y Apple", style = MaterialTheme.typography.labelSmall)
+                        },
+                        update = { view ->
+                            preview = view
+                            view.renderer.blur = blur
+                            view.renderer.radius = radius
+                            view.renderer.dark = dark
+                            view.enabled = enabled
+                            imageRevision.hashCode()
+                            view.invalidate()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(360.dp),
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = { preview?.play() },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.weight(1f).height(58.dp),
+                        ) { Text("VER MOVIMIENTO", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        OutlinedButton(
+                            onClick = { imagePicker.launch("image/*") },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.weight(1f).height(58.dp),
+                        ) { Text("ELEGIR IMAGEN", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                     }
+
+                    Spacer(Modifier.height(30.dp))
+                    Text("ESTUDIO", color = Muted, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.8.sp)
+                    Spacer(Modifier.height(10.dp))
+                    ControlPanel {
+                        LabeledSlider("Apertura", progress, 0f..1f) {
+                            progress = it
+                            preview?.setProgress(it)
+                        }
+                        LabeledSlider("Desenfoque suave", blur, 0f..1f) {
+                            blur = it
+                            prefs.edit().putFloat("blur", it).apply()
+                        }
+                        LabeledSlider("Esquinas", radius, 0f..0.15f) {
+                            radius = it
+                            prefs.edit().putFloat("radius", it).apply()
+                        }
+                        ToggleRow("Escenario oscuro", dark) {
+                            dark = it
+                            prefs.edit().putBoolean("dark", it).apply()
+                        }
+                        ToggleRow("Responder al Fold", enabled) {
+                            enabled = it
+                            prefs.edit().putBoolean("enabled", it).apply()
+                        }
+                    }
+
+                    Spacer(Modifier.height(22.dp))
+                    Button(
+                        onClick = { openWallpaperPicker() },
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                    ) { Text("USAR COMO FONDO", fontWeight = FontWeight.Black, letterSpacing = .7.sp) }
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        "El efecto vive en el fondo de inicio. One UI conserva tus iconos y aplicaciones. F/LAB no captura la pantalla y no necesita Accesibilidad.",
+                        color = Muted,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
-                if (disclose) AlertDialog(onDismissRequest = { disclose = false },
-                    title = { Text("Permitir el efecto sobre otras apps") },
-                    text = { Text(getString(R.string.fold_disclosure)) },
-                    confirmButton = { TextButton(onClick = {
-                        prefs.edit().putBoolean("consent", true).putBoolean("enabled", true).apply()
-                        enabled = true
-                        disclose = false
-                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    }) { Text("Entendido · abrir ajustes") } },
-                    dismissButton = { TextButton(onClick = { disclose = false }) { Text("Ahora no") } })
             }
         }
     }
-    override fun onStop() {
-        previewAnimation?.cancel()
-        previewAnimation = null
-        super.onStop()
+
+    @Composable
+    private fun ControlPanel(content: @Composable ColumnScope.() -> Unit) {
+        Surface(color = Panel, shape = RoundedCornerShape(28.dp), shadowElevation = 1.dp) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp), content = content)
+        }
     }
 
-    private fun previewBitmap(): Bitmap {
-        val bitmap = Bitmap.createBitmap(900, 500, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(android.graphics.Color.rgb(25, 46, 52))
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = android.graphics.Color.rgb(156, 235, 218)
-        canvas.drawCircle(740f, 110f, 210f, paint)
-        paint.color = android.graphics.Color.rgb(67, 111, 129)
-        canvas.drawCircle(610f, 420f, 270f, paint)
-        paint.color = android.graphics.Color.WHITE
-        paint.textSize = 55f
-        canvas.drawText("Tu mundo. Más suave.", 40f, 110f, paint)
-        paint.textSize = 28f
-        canvas.drawText("F/LAB · Movimiento", 40f, 160f, paint)
-        for (i in 0..4) {
-            paint.color = android.graphics.Color.rgb(210 - i * 20, 225 - i * 10, 225)
-            val left = 45f + i * 170
-            canvas.drawRoundRect(left, 330f, left + 105, 435f, 26f, 26f, paint)
+    @Composable
+    private fun LabeledSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, change: (Float) -> Unit) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            Text("${(value / range.endInclusive * 100).toInt()}%", color = Muted, fontSize = 13.sp)
         }
-        return bitmap
+        Slider(value = value, onValueChange = change, valueRange = range)
+        Spacer(Modifier.height(7.dp))
+    }
+
+    @Composable
+    private fun ToggleRow(label: String, checked: Boolean, change: (Boolean) -> Unit) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            Switch(checked = checked, onCheckedChange = change)
+        }
+    }
+
+    private fun openWallpaperPicker() {
+        val component = ComponentName(this, FoldWallpaper::class.java)
+        try {
+            startActivity(Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
+                putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, component)
+            })
+        } catch (_: ActivityNotFoundException) {
+            startActivity(Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))
+        }
     }
 }

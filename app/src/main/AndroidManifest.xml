@@ -19,14 +19,14 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".motion.FoldService"
+            android:name=".studio.FoldWallpaper"
             android:exported="true"
-            android:label="F/LAB · Movimiento suave"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:label="F/LAB · Papel en movimiento"
+            android:permission="android.permission.BIND_WALLPAPER">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.service.wallpaper.WallpaperService" />
             </intent-filter>
-            <meta-data android:name="android.accessibilityservice" android:resource="@xml/fold_accessibility" />
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/fold_wallpaper" />
         </service>
     </application>
 

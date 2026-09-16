@@ -1,25 +1,22 @@
-# F/LAB Movimiento suave 1.0
+# F/LAB Papel en movimiento 1.1
 
-Optional timed 620 ms frost transition on a temporary screenshot. This is not
-an angle-accurate replica of the Apple demo or an official Good Lock plugin.
-One UI remains the launcher. Android 13+.
+An installable Android 13+ live wallpaper that gives the Fold home screen a physical
+page transition. It follows F/LAB's ivory, black and cobalt editorial direction and
+supports a user-selected landscape.
 
 ## Permission and operation
 
-Explicit consent in F/LAB followed by Android Accessibility permission. Screenshot
-capability only; no accessibility tree retrieval, gestures, Internet or storage permission.
-Images stay in RAM. Protected capture failures and predominantly black frames are skipped.
-Disabled by default. No captures on locked/noninteractive devices. Screen-off unregisters
-the sensor. Disabling cancels pending work and removes overlays. Android's disabled
-animation setting is respected.
+The app declares no runtime, Accessibility, storage, overlay or network permission.
+Android binds the wallpaper engine with `BIND_WALLPAPER`; the user applies it through
+the system live-wallpaper picker.
 
-Public hinge sensor: non-wake-up preferred, then wake-up. Posture boundaries and changes
-in physical display dimensions trigger the effect. Intermediate readings are reported
-only after five distinct noncanonical angles; animation remains timed in both cases.
+The renderer keeps two leaves on a shared canvas. The moving leaf uses a perspective
+quadrilateral, rounded clipping, a soft Gaussian RenderEffect and a restrained shadow.
+The public hinge sensor and changes in physical surface size trigger the timed page turn.
+The engine runs only while the wallpaper is visible and unregisters the sensor otherwise.
 
-Independent AGSL displacement with Android RenderEffect Gaussian blur.
-No borrowed shader source. Touch-through, non-focusable, secure overlay; 900 ms watchdog.
-No forced dual display, display-state override, Shizuku, root, unlock or remote action.
+Controls include manual preview, motion softness, corner radius, light/dark stage,
+Fold response and a private image copied into app storage.
 
 ## Research references (no source copied)
 
@@ -29,12 +26,12 @@ No forced dual display, display-state override, Shizuku, root, unlock or remote 
 
 ## Limits and verification
 
-The snapshot briefly freezes moving content within the fading overlay. Samsung controls
-panel power and unlock. Quick folds may omit a phase or show the effect after the switch.
-Secure screens cannot be animated. Three-position readings are not reconstructed as
-precise angles. No physical Samsung device is attached to CI.
+The effect belongs to the wallpaper; One UI retains and draws icons, widgets and other
+apps. Samsung controls panel power and unlock. Devices exposing only coarse posture
+events receive a timed transition; F/LAB does not invent intermediate hinge angles.
+No physical Samsung device is attached to CI.
 
-Automated gate: posture/debounce tests, existing tests, lint and debug build.
-Physical acceptance pending: Samsung shader compilation, fold/unfold on Home, disable and
-permission revocation, protected/lock screens, idle behavior, touch-through, landscape,
-frame time and battery. Debug APK is for personal sideloading, not a Play Store release.
+Automated gate: geometry and posture tests, existing tests, lint and debug build.
+Physical acceptance pending: wallpaper selection, fold/unfold on Home, Samsung renderer,
+surface resize, idle behavior, frame time and battery. The debug APK is for personal
+sideloading, not a Play Store release.
