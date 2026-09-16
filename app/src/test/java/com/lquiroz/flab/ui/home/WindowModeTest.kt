@@ -21,10 +21,15 @@ class WindowModeTest {
     }
 
     @Test
-    fun `cover is a center crop of a wider virtual canvas`() {
-        assertEquals(2.12f, virtualCanvasScale(WindowMode.Compact))
-        assertEquals(1f, virtualCanvasScale(WindowMode.Medium))
-        assertEquals(1f, virtualCanvasScale(WindowMode.Expanded))
+    fun `frost begins immediately and saturates before fully open`() {
+        assertEquals(0f, frostAmount(0f))
+        assertEquals(1f, frostAmount(1f))
+    }
+
+    @Test
+    fun `dashboard waits until the shared rail is established`() {
+        assertEquals(0f, dashboardReveal(0.18f))
+        assertEquals(1f, dashboardReveal(1f))
     }
 
     @Test
