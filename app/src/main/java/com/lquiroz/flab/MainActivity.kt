@@ -6,6 +6,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.WindowManager
@@ -234,7 +235,8 @@ class MainActivity : ComponentActivity(), WindowAreaPresentationSessionCallback,
     override fun onContainerVisibilityChanged(isVisible: Boolean) = Unit
 
     private fun isInnerDisplay(): Boolean {
-        val mode = display?.mode ?: return resources.configuration.screenWidthDp >= 600
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display?.mode else null
+        mode ?: return resources.configuration.screenWidthDp >= 600
         return maxOf(mode.physicalWidth, mode.physicalHeight) > INNER_DISPLAY_LONG_EDGE_PX &&
             minOf(mode.physicalWidth, mode.physicalHeight) > INNER_DISPLAY_SHORT_EDGE_PX
     }
