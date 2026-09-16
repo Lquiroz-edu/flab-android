@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
+import com.lquiroz.flab.fold.rememberHingeAngle
 import com.lquiroz.flab.fold.rememberFoldSnapshot
 import com.lquiroz.flab.ui.home.FLabHomeScreen
 import com.lquiroz.flab.ui.theme.FLabTheme
@@ -16,7 +17,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             FLabTheme {
                 val foldSnapshot by rememberFoldSnapshot()
-                FLabHomeScreen(foldSnapshot)
+                val hingeAngle by rememberHingeAngle()
+                FLabHomeScreen(foldSnapshot = foldSnapshot, hingeAngle = hingeAngle)
             }
         }
     }

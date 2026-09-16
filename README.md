@@ -10,8 +10,9 @@ The current prototype provides:
 - Edge-to-edge presentation with a small F/LAB visual language.
 - Responsive compact, medium, and expanded layouts.
 - Fold posture reporting through Jetpack WindowManager.
-- A stateful Cover ↔ Inner continuity scene with adaptive motion and Flex posture feedback.
-- Selection, playback, and progress that survive folding and unfolding.
+- A shared panoramic canvas: Cover crops the center and Inner reveals the missing sides.
+- Live hinge-angle response when available, with WindowManager fallback.
+- A short physical settle and center-crease treatment inspired by the supplied Duo reference.
 - Continuous integration that tests, lints, and produces a downloadable debug APK.
 
 ## Build

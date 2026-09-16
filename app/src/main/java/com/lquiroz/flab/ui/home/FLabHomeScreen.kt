@@ -1,13 +1,9 @@
 package com.lquiroz.flab.ui.home
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,45 +21,38 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lquiroz.flab.fold.FoldPosture
 import com.lquiroz.flab.fold.FoldSnapshot
 import com.lquiroz.flab.ui.theme.Cyan
-import com.lquiroz.flab.ui.theme.Surface as FLabSurface
-import com.lquiroz.flab.ui.theme.SurfaceRaised
 import com.lquiroz.flab.ui.theme.TextSecondary
-import com.lquiroz.flab.ui.theme.Violet
 import kotlinx.coroutines.delay
-import kotlin.math.cos
-import kotlin.math.roundToInt
-import kotlin.math.sin
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 enum class WindowMode(val label: String) {
     Compact("Cover"),
@@ -77,522 +66,473 @@ fun windowModeForWidth(widthDp: Int): WindowMode = when {
     else -> WindowMode.Expanded
 }
 
-fun nextMomentIndex(current: Int, count: Int): Int {
-    require(count > 0) { "Moment count must be positive" }
-    return (current + 1) % count
+fun virtualCanvasScale(mode: WindowMode): Float = when (mode) {
+    WindowMode.Compact -> 2.12f
+    WindowMode.Medium,
+    WindowMode.Expanded,
+    -> 1f
 }
 
-private data class ContinuityMoment(
-    val number: String,
-    val eyebrow: String,
-    val title: String,
-    val detail: String,
+fun hingeOpenFraction(angle: Float?, mode: WindowMode): Float = when {
+    angle != null -> (angle / 180f).coerceIn(0f, 1f)
+    mode == WindowMode.Compact -> 0f
+    else -> 1f
+}
+
+private data class PanoramaPalette(
+    val name: String,
+    val sky: List<Color>,
+    val sun: Color,
+    val ridgeFar: Color,
+    val ridgeNear: Color,
+    val foreground: Color,
     val accent: Color,
 )
 
-private val moments = listOf(
-    ContinuityMoment(
-        number = "01",
-        eyebrow = "FOCUS",
-        title = "One thought,\nmore room.",
-        detail = "The active idea stays anchored while the canvas grows around it.",
+private val palettes = listOf(
+    PanoramaPalette(
+        name = "DUSK",
+        sky = listOf(Color(0xFF8583B6), Color(0xFFD9A3A5), Color(0xFFF3C8B8)),
+        sun = Color(0xFFFFDFB2),
+        ridgeFar = Color(0xFF4E526E),
+        ridgeNear = Color(0xFF272B3D),
+        foreground = Color(0xFFF1C8BB),
+        accent = Color(0xFFFFD6B7),
+    ),
+    PanoramaPalette(
+        name = "AURORA",
+        sky = listOf(Color(0xFF1E355A), Color(0xFF3E8C9D), Color(0xFF9DE4C7)),
+        sun = Color(0xFFD8FFF3),
+        ridgeFar = Color(0xFF224E62),
+        ridgeNear = Color(0xFF122D41),
+        foreground = Color(0xFF8BD6C5),
         accent = Cyan,
     ),
-    ContinuityMoment(
-        number = "02",
-        eyebrow = "FLOW",
-        title = "Never begin\ntwice.",
-        detail = "Selection, progress and intent survive every screen transition.",
-        accent = Violet,
-    ),
-    ContinuityMoment(
-        number = "03",
-        eyebrow = "DEPTH",
-        title = "Space reveals\ncontext.",
-        detail = "The inner display adds structure instead of merely stretching pixels.",
-        accent = Color(0xFFFFD37A),
+    PanoramaPalette(
+        name = "EMBER",
+        sky = listOf(Color(0xFF442742), Color(0xFFB55255), Color(0xFFFFA568)),
+        sun = Color(0xFFFFE0A3),
+        ridgeFar = Color(0xFF713844),
+        ridgeNear = Color(0xFF3B2534),
+        foreground = Color(0xFFE68160),
+        accent = Color(0xFFFFC078),
     ),
 )
 
 @Composable
-fun FLabHomeScreen(foldSnapshot: FoldSnapshot) {
-    var selectedMoment by rememberSaveable { mutableIntStateOf(0) }
-    var isPlaying by rememberSaveable { mutableStateOf(false) }
-    var progress by rememberSaveable { mutableFloatStateOf(0.18f) }
+fun FLabHomeScreen(foldSnapshot: FoldSnapshot, hingeAngle: Float?) {
+    var paletteIndex by rememberSaveable { mutableIntStateOf(0) }
+    val palette = palettes[paletteIndex]
+    val haptic = LocalHapticFeedback.current
+    var time by remember { mutableStateOf(LocalTime.now()) }
 
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
-            delay(50)
-            progress = if (progress >= 1f) 0f else (progress + 0.0065f).coerceAtMost(1f)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000)
+            time = LocalTime.now()
         }
     }
-
-    val moment = moments[selectedMoment]
-    val accent by animateColorAsState(
-        targetValue = moment.accent,
-        animationSpec = tween(500, easing = FastOutSlowInEasing),
-        label = "sceneAccent",
-    )
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(accent.copy(alpha = 0.14f), Color(0xFF090B0F)),
-                    radius = 1350f,
-                ),
-            ),
+            .background(Color(0xFF07090D)),
     ) {
         val mode = windowModeForWidth(maxWidth.value.toInt())
-        val horizontalPadding = if (mode == WindowMode.Compact) 18.dp else 30.dp
+        val openFraction = hingeOpenFraction(hingeAngle, mode)
+        val settle = remember { Animatable(1f) }
+        var previousMode by rememberSaveable { mutableStateOf(mode.name) }
+
+        LaunchedEffect(mode) {
+            if (previousMode != mode.name) {
+                settle.snapTo(0f)
+                settle.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(170, easing = FastOutSlowInEasing),
+                )
+                previousMode = mode.name
+            }
+        }
+
+        val sceneScale = if (mode == WindowMode.Compact) {
+            lerp(1.018f, 1f, settle.value)
+        } else {
+            lerp(0.985f, 1f, settle.value)
+        }
+        val sceneAlpha = lerp(0.92f, 1f, settle.value)
+        val accent by animateColorAsState(
+            targetValue = palette.accent,
+            animationSpec = tween(350),
+            label = "panoramaAccent",
+        )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = horizontalPadding, vertical = 18.dp),
+                .padding(
+                    horizontal = if (mode == WindowMode.Compact) 12.dp else 18.dp,
+                    vertical = 10.dp,
+                ),
         ) {
-            ContinuityHeader(mode = mode, accent = accent)
-            Spacer(Modifier.height(if (mode == WindowMode.Compact) 24.dp else 30.dp))
+            LabHeader(mode = mode, accent = accent)
+            Spacer(Modifier.height(10.dp))
 
-            AnimatedContent(
-                targetState = mode,
-                transitionSpec = {
-                    fadeIn(tween(420, easing = FastOutSlowInEasing)) togetherWith
-                        fadeOut(tween(180))
-                },
-                label = "coverToInner",
-            ) { targetMode ->
-                if (targetMode == WindowMode.Compact) {
-                    CoverScene(
-                        moment = moment,
-                        accent = accent,
-                        progress = progress,
-                        isPlaying = isPlaying,
-                        onTogglePlayback = { isPlaying = !isPlaying },
-                        onNextMoment = { selectedMoment = nextMomentIndex(selectedMoment, moments.size) },
-                        foldSnapshot = foldSnapshot,
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .graphicsLayer {
+                        scaleX = sceneScale
+                        scaleY = sceneScale
+                        alpha = sceneAlpha
+                    }
+                    .clip(RoundedCornerShape(if (mode == WindowMode.Compact) 34.dp else 40.dp))
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.14f),
+                        RoundedCornerShape(if (mode == WindowMode.Compact) 34.dp else 40.dp),
                     )
-                } else {
-                    InnerScene(
-                        moment = moment,
-                        selectedMoment = selectedMoment,
-                        accent = accent,
-                        progress = progress,
-                        isPlaying = isPlaying,
-                        onTogglePlayback = { isPlaying = !isPlaying },
-                        onSelectMoment = { selectedMoment = it },
-                        foldSnapshot = foldSnapshot,
-                        wide = targetMode == WindowMode.Expanded,
-                    )
-                }
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        paletteIndex = (paletteIndex + 1) % palettes.size
+                    },
+            ) {
+                SharedPanorama(
+                    palette = palette,
+                    mode = mode,
+                    openFraction = openFraction,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                LockSceneOverlay(
+                    time = time,
+                    palette = palette,
+                    mode = mode,
+                    openFraction = openFraction,
+                    hingeAngle = hingeAngle,
+                    foldSnapshot = foldSnapshot,
+                )
             }
+
+            Spacer(Modifier.height(10.dp))
+            TestStrip(
+                mode = mode,
+                palette = palette,
+                hingeAngle = hingeAngle,
+                onNextScene = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    paletteIndex = (paletteIndex + 1) % palettes.size
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun ContinuityHeader(mode: WindowMode, accent: Color) {
+private fun LabHeader(mode: WindowMode, accent: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column {
-            Text("F/LAB", fontSize = 27.sp, fontWeight = FontWeight.Black, letterSpacing = 1.6.sp)
             Text(
-                "MOTION CONTINUITY · V1",
-                color = TextSecondary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
-            )
-        }
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(100.dp))
-                .background(accent.copy(alpha = 0.11f))
-                .border(1.dp, accent.copy(alpha = 0.38f), RoundedCornerShape(100.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            Box(Modifier.size(6.dp).clip(CircleShape).background(accent))
-            Text(mode.label.uppercase(), color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun CoverScene(
-    moment: ContinuityMoment,
-    accent: Color,
-    progress: Float,
-    isPlaying: Boolean,
-    onTogglePlayback: () -> Unit,
-    onNextMoment: () -> Unit,
-    foldSnapshot: FoldSnapshot,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        HeroCanvas(moment, accent, progress, true, Modifier.fillMaxWidth())
-        PlaybackControls(isPlaying, progress, accent, onTogglePlayback, onNextMoment)
-        ContinuityInstruction(
-            title = "Open the Fold",
-            body = "Keep this moment selected. The same number and progress must arrive on the inner canvas.",
-            accent = accent,
-        )
-        DeviceTelemetry(foldSnapshot, WindowMode.Compact, accent)
-    }
-}
-
-@Composable
-private fun InnerScene(
-    moment: ContinuityMoment,
-    selectedMoment: Int,
-    accent: Color,
-    progress: Float,
-    isPlaying: Boolean,
-    onTogglePlayback: () -> Unit,
-    onSelectMoment: (Int) -> Unit,
-    foldSnapshot: FoldSnapshot,
-    wide: Boolean,
-) {
-    val haptic = LocalHapticFeedback.current
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            HeroCanvas(
-                moment,
-                accent,
-                progress,
-                false,
-                Modifier.weight(if (wide) 1.45f else 1.2f),
-            )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "THE CANVAS GREW.\nTHE THOUGHT DIDN'T MOVE.",
-                    color = TextSecondary,
-                    fontSize = if (wide) 12.sp else 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 17.sp,
-                    letterSpacing = 1.sp,
-                )
-                moments.forEachIndexed { index, item ->
-                    MomentCard(
-                        moment = item,
-                        selected = index == selectedMoment,
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onSelectMoment(index)
-                        },
-                    )
-                }
-                PlaybackControls(
-                    isPlaying,
-                    progress,
-                    accent,
-                    onTogglePlayback,
-                    { onSelectMoment(nextMomentIndex(selectedMoment, moments.size)) },
-                )
-            }
-        }
-        if (foldSnapshot.posture == FoldPosture.HalfOpened) {
-            ContinuityInstruction(
-                "Flex posture detected",
-                "The scene stays active while controls remain separated from the primary canvas.",
-                accent,
-            )
-        }
-        DeviceTelemetry(
-            foldSnapshot,
-            if (wide) WindowMode.Expanded else WindowMode.Medium,
-            accent,
-        )
-    }
-}
-
-@Composable
-private fun HeroCanvas(
-    moment: ContinuityMoment,
-    accent: Color,
-    progress: Float,
-    compact: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(120, easing = FastOutSlowInEasing),
-        label = "continuityProgress",
-    )
-    val sceneScale by animateFloatAsState(
-        targetValue = if (compact) 0.94f else 1f,
-        animationSpec = tween(520, easing = FastOutSlowInEasing),
-        label = "continuityScale",
-    )
-
-    Surface(
-        modifier = modifier.graphicsLayer { scaleX = sceneScale; scaleY = sceneScale },
-        color = FLabSurface.copy(alpha = 0.94f),
-        shape = RoundedCornerShape(if (compact) 30.dp else 36.dp),
-        tonalElevation = 0.dp,
-    ) {
-        Column(modifier = Modifier.padding(if (compact) 20.dp else 26.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "MOMENT ${moment.number}",
-                    color = accent,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.3.sp,
-                )
-                Text(
-                    "${(animatedProgress * 100).roundToInt()}%",
-                    color = TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            OrbitVisual(
-                moment,
-                accent,
-                animatedProgress,
-                compact,
-                Modifier.fillMaxWidth().height(if (compact) 260.dp else 340.dp),
-            )
-            Text(
-                moment.eyebrow,
-                color = accent,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp,
-            )
-            Spacer(Modifier.height(7.dp))
-            Text(
-                moment.title,
-                fontSize = if (compact) 29.sp else 34.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = if (compact) 32.sp else 38.sp,
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(moment.detail, color = TextSecondary, fontSize = 13.sp, lineHeight = 19.sp)
-        }
-    }
-}
-
-@Composable
-private fun OrbitVisual(
-    moment: ContinuityMoment,
-    accent: Color,
-    progress: Float,
-    compact: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val radius = size.minDimension * if (compact) 0.31f else 0.34f
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val angle = (progress * 360f - 90f) * (Math.PI / 180f)
-
-            drawCircle(accent.copy(alpha = 0.06f), radius * 1.28f, center)
-            drawCircle(
-                Color.White.copy(alpha = 0.08f),
-                radius,
-                center,
-                style = Stroke(width = 2.dp.toPx()),
-            )
-            drawArc(
-                color = accent,
-                startAngle = -90f,
-                sweepAngle = progress * 360f,
-                useCenter = false,
-                topLeft = Offset(center.x - radius, center.y - radius),
-                size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
-                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
-            )
-            drawCircle(
-                color = accent,
-                radius = 7.dp.toPx(),
-                center = Offset(
-                    center.x + cos(angle).toFloat() * radius,
-                    center.y + sin(angle).toFloat() * radius,
-                ),
-            )
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                moment.number,
-                color = accent,
-                fontSize = if (compact) 58.sp else 72.sp,
+                text = "F/LAB",
+                color = Color.White,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
+                letterSpacing = 1.5.sp,
             )
             Text(
-                "CONTINUOUS STATE",
+                text = "DUO TRANSITION · ALPHA 02",
                 color = TextSecondary,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.1.sp,
             )
         }
-    }
-}
-
-@Composable
-private fun PlaybackControls(
-    isPlaying: Boolean,
-    progress: Float,
-    accent: Color,
-    onTogglePlayback: () -> Unit,
-    onNextMoment: () -> Unit,
-) {
-    val haptic = LocalHapticFeedback.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(SurfaceRaised.copy(alpha = 0.88f))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(22.dp))
-            .padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ControlButton(
-            if (isPlaying) "PAUSE" else "PLAY",
-            accent,
-            true,
-            Modifier.weight(1f),
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(100.dp))
+                .background(accent.copy(alpha = 0.12f))
+                .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(100.dp))
+                .padding(horizontal = 11.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            onTogglePlayback()
-        }
-        ControlButton("NEXT", accent, false, Modifier.weight(1f)) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            onNextMoment()
-        }
-        Text(
-            "${(progress * 100).roundToInt()}%",
-            color = accent,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
-    }
-}
-
-@Composable
-private fun ControlButton(
-    label: String,
-    accent: Color,
-    emphasized: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(15.dp))
-            .background(if (emphasized) accent else Color.White.copy(alpha = 0.05f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 13.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            color = if (emphasized) Color(0xFF090B0F) else Color.White,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 0.8.sp,
-        )
-    }
-}
-
-@Composable
-private fun MomentCard(moment: ContinuityMoment, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) moment.accent.copy(alpha = 0.12f) else SurfaceRaised.copy(alpha = 0.76f))
-            .border(
-                1.dp,
-                if (selected) moment.accent.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.05f),
-                RoundedCornerShape(18.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(moment.number, color = moment.accent, fontSize = 22.sp, fontWeight = FontWeight.Black)
-        Column {
-            Text(moment.eyebrow, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Box(Modifier.size(6.dp).clip(CircleShape).background(accent))
             Text(
-                if (selected) "Active across screens" else "Tap to select",
-                color = TextSecondary,
-                fontSize = 10.sp,
+                text = mode.label.uppercase(),
+                color = accent,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
             )
         }
     }
 }
 
 @Composable
-private fun ContinuityInstruction(title: String, body: String, accent: Color) {
+private fun SharedPanorama(
+    palette: PanoramaPalette,
+    mode: WindowMode,
+    openFraction: Float,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val worldWidth = size.width * virtualCanvasScale(mode)
+        val viewportOffset = (worldWidth - size.width) / 2f
+        fun worldX(fraction: Float): Float = worldWidth * fraction - viewportOffset
+
+        drawRect(
+            brush = Brush.verticalGradient(palette.sky),
+            size = size,
+        )
+
+        drawCircle(
+            color = palette.sun.copy(alpha = 0.84f),
+            radius = size.minDimension * 0.14f,
+            center = Offset(worldX(0.72f), size.height * 0.28f),
+        )
+        drawCircle(
+            color = palette.sun.copy(alpha = 0.12f),
+            radius = size.minDimension * 0.24f,
+            center = Offset(worldX(0.72f), size.height * 0.28f),
+        )
+
+        val farRidge = Path().apply {
+            moveTo(worldX(0f), size.height)
+            lineTo(worldX(0f), size.height * 0.61f)
+            lineTo(worldX(0.12f), size.height * 0.48f)
+            lineTo(worldX(0.25f), size.height * 0.58f)
+            lineTo(worldX(0.38f), size.height * 0.42f)
+            lineTo(worldX(0.52f), size.height * 0.56f)
+            lineTo(worldX(0.68f), size.height * 0.40f)
+            lineTo(worldX(0.82f), size.height * 0.55f)
+            lineTo(worldX(1f), size.height * 0.46f)
+            lineTo(worldX(1f), size.height)
+            close()
+        }
+        drawPath(farRidge, palette.ridgeFar.copy(alpha = 0.78f))
+
+        val nearRidge = Path().apply {
+            moveTo(worldX(0f), size.height)
+            lineTo(worldX(0f), size.height * 0.68f)
+            lineTo(worldX(0.18f), size.height * 0.57f)
+            lineTo(worldX(0.32f), size.height * 0.64f)
+            lineTo(worldX(0.49f), size.height * 0.52f)
+            lineTo(worldX(0.66f), size.height * 0.65f)
+            lineTo(worldX(0.84f), size.height * 0.54f)
+            lineTo(worldX(1f), size.height * 0.62f)
+            lineTo(worldX(1f), size.height)
+            close()
+        }
+        drawPath(nearRidge, palette.ridgeNear.copy(alpha = 0.94f))
+
+        val foreground = Path().apply {
+            moveTo(worldX(0f), size.height)
+            lineTo(worldX(0f), size.height * 0.78f)
+            cubicTo(
+                worldX(0.23f), size.height * 0.69f,
+                worldX(0.38f), size.height * 0.86f,
+                worldX(0.57f), size.height * 0.76f,
+            )
+            cubicTo(
+                worldX(0.75f), size.height * 0.67f,
+                worldX(0.88f), size.height * 0.82f,
+                worldX(1f), size.height * 0.72f,
+            )
+            lineTo(worldX(1f), size.height)
+            close()
+        }
+        drawPath(foreground, palette.foreground)
+
+        drawRect(
+            brush = Brush.verticalGradient(
+                listOf(Color.Transparent, Color.Black.copy(alpha = 0.18f)),
+                startY = size.height * 0.55f,
+                endY = size.height,
+            ),
+            size = size,
+        )
+
+        if (mode != WindowMode.Compact) {
+            val creaseHalfWidth = size.width * 0.055f
+            val creaseAlpha = 0.06f + (1f - openFraction) * 0.26f
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Black.copy(alpha = creaseAlpha),
+                        Color.White.copy(alpha = creaseAlpha * 0.48f),
+                        Color.Transparent,
+                    ),
+                    startX = size.width / 2f - creaseHalfWidth,
+                    endX = size.width / 2f + creaseHalfWidth,
+                ),
+                topLeft = Offset(size.width / 2f - creaseHalfWidth, 0f),
+                size = Size(creaseHalfWidth * 2f, size.height),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LockSceneOverlay(
+    time: LocalTime,
+    palette: PanoramaPalette,
+    mode: WindowMode,
+    openFraction: Float,
+    hingeAngle: Float?,
+    foldSnapshot: FoldSnapshot,
+) {
+    val timeText = time.format(DateTimeFormatter.ofPattern("HH:mm"))
+    val dateText = LocalDate.now().format(DateTimeFormatter.ofPattern("EEE, d MMM"))
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (mode == WindowMode.Compact) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 62.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = dateText.uppercase(),
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.3.sp,
+                )
+                Text(
+                    text = timeText,
+                    color = Color.White,
+                    fontSize = 64.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-2).sp,
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 42.dp, end = 44.dp),
+                horizontalAlignment = Alignment.End,
+            ) {
+                Text(
+                    text = dateText.uppercase(),
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.3.sp,
+                )
+                Text(
+                    text = timeText,
+                    color = Color.White,
+                    fontSize = 58.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-2).sp,
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(24.dp),
+        ) {
+            Text(
+                text = "SCENE ${palette.name}",
+                color = palette.accent,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.4.sp,
+            )
+            Spacer(Modifier.height(5.dp))
+            Text(
+                text = if (mode == WindowMode.Compact) {
+                    "Center crop · open to reveal"
+                } else {
+                    "Shared canvas · sides revealed"
+                },
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(
+                text = hingeAngle?.let { "${it.toInt()}°" } ?: foldSnapshot.posture.label,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "OPEN ${(openFraction * 100).toInt()}%",
+                color = Color.White.copy(alpha = 0.62f),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TestStrip(
+    mode: WindowMode,
+    palette: PanoramaPalette,
+    hingeAngle: Float?,
+    onNextScene: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(accent.copy(alpha = 0.08f))
-            .border(1.dp, accent.copy(alpha = 0.24f), RoundedCornerShape(22.dp))
-            .padding(17.dp),
-        horizontalArrangement = Arrangement.spacedBy(13.dp),
-        verticalAlignment = Alignment.Top,
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF141821))
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(20.dp))
+            .padding(9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(9.dp).clip(CircleShape).background(accent))
-        Column {
-            Text(title, color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Text(body, color = TextSecondary, fontSize = 12.sp, lineHeight = 17.sp)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(13.dp))
+                .background(palette.accent)
+                .clickable(onClick = onNextScene)
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "CHANGE SCENE",
+                color = Color(0xFF090B0F),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.7.sp,
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = if (mode == WindowMode.Compact) "OPEN THE FOLD" else "CLOSE THE FOLD",
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (hingeAngle == null) "Window fallback active" else "Live hinge sensor active",
+                color = TextSecondary,
+                fontSize = 9.sp,
+            )
         }
     }
 }
 
-@Composable
-private fun DeviceTelemetry(foldSnapshot: FoldSnapshot, mode: WindowMode, accent: Color) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Black.copy(alpha = 0.22f))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(11.dp),
-    ) {
-        Text(
-            "CONTINUITY TELEMETRY",
-            color = TextSecondary,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp,
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TelemetryValue("SURFACE", mode.label, accent)
-            TelemetryValue("HINGE", foldSnapshot.posture.label, Violet)
-            TelemetryValue("AXIS", foldSnapshot.orientation, Color(0xFFFFD37A))
-        }
-    }
-}
-
-@Composable
-private fun TelemetryValue(label: String, value: String, accent: Color) {
-    Column {
-        Text(label, color = TextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = accent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-    }
-}
+private fun lerp(start: Float, stop: Float, fraction: Float): Float =
+    start + (stop - start) * fraction.coerceIn(0f, 1f)

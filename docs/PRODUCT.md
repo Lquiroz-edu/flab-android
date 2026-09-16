@@ -27,3 +27,15 @@ F/LAB V1 focuses only on motion continuity inside the app:
 - Opening, closing, rotation, and Flex posture never require restarting the task.
 - Motion runs only while F/LAB is visible and playback is active.
 - No overlay, accessibility service, launcher replacement, or root permission is required.
+
+## Duo transition model
+
+The reference effect is not a cross-fade between unrelated layouts. F/LAB models one shared
+panoramic canvas:
+
+- Cover renders a centered crop of the virtual canvas.
+- Inner reveals the missing sides without stretching the focal content.
+- The software settle is intentionally short; the physical hinge supplies most of the motion.
+- A live hinge-angle sensor drives crease depth when the device exposes it, with WindowManager
+  as the fallback.
+- The center crease uses light and shadow that diminish as the device reaches 180 degrees.

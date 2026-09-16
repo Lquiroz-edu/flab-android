@@ -21,8 +21,17 @@ class WindowModeTest {
     }
 
     @Test
-    fun `moment selection advances and wraps`() {
-        assertEquals(1, nextMomentIndex(current = 0, count = 3))
-        assertEquals(0, nextMomentIndex(current = 2, count = 3))
+    fun `cover is a center crop of a wider virtual canvas`() {
+        assertEquals(2.12f, virtualCanvasScale(WindowMode.Compact))
+        assertEquals(1f, virtualCanvasScale(WindowMode.Medium))
+        assertEquals(1f, virtualCanvasScale(WindowMode.Expanded))
+    }
+
+    @Test
+    fun `hinge angle maps to physical open progress`() {
+        assertEquals(0f, hingeOpenFraction(angle = 0f, mode = WindowMode.Compact))
+        assertEquals(0.5f, hingeOpenFraction(angle = 90f, mode = WindowMode.Medium))
+        assertEquals(1f, hingeOpenFraction(angle = 180f, mode = WindowMode.Expanded))
+        assertEquals(1f, hingeOpenFraction(angle = null, mode = WindowMode.Medium))
     }
 }
