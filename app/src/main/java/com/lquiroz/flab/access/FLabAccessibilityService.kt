@@ -41,7 +41,7 @@ class FLabAccessibilityService : AccessibilityService() {
         else overlay.hide()
     }
 
-    override fun onInterrupt() { overlay.hide() }
+    override fun onInterrupt() { if (::overlay.isInitialized) overlay.hide() }
 
     override fun onDestroy() {
         runCatching { unregisterReceiver(screenReceiver) }
