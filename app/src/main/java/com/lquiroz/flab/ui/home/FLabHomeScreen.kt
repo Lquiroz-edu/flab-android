@@ -1,64 +1,47 @@
 package com.lquiroz.flab.ui.home
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lquiroz.flab.fold.FoldSnapshot
-import com.lquiroz.flab.ui.theme.Cyan
-import com.lquiroz.flab.ui.theme.TextSecondary
-import kotlinx.coroutines.delay
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
-enum class WindowMode(val label: String) {
-    Compact("Cover"),
-    Medium("Inner"),
-    Expanded("Inner wide"),
-}
+enum class SurfaceRole { Cover, Inner }
+
+enum class WindowMode { Compact, Medium, Expanded }
 
 fun windowModeForWidth(widthDp: Int): WindowMode = when {
     widthDp < 600 -> WindowMode.Compact
@@ -66,473 +49,283 @@ fun windowModeForWidth(widthDp: Int): WindowMode = when {
     else -> WindowMode.Expanded
 }
 
-fun virtualCanvasScale(mode: WindowMode): Float = when (mode) {
-    WindowMode.Compact -> 2.12f
-    WindowMode.Medium,
-    WindowMode.Expanded,
-    -> 1f
-}
+fun hingeOpenFraction(angle: Float?, mode: WindowMode): Float =
+    angle?.div(180f)?.coerceIn(0f, 1f) ?: if (mode == WindowMode.Compact) 0f else 1f
 
-fun hingeOpenFraction(angle: Float?, mode: WindowMode): Float = when {
-    angle != null -> (angle / 180f).coerceIn(0f, 1f)
-    mode == WindowMode.Compact -> 0f
-    else -> 1f
-}
+fun frostAmount(progress: Float): Float =
+    ((progress.coerceIn(0f, 1f) - 0.04f) / 0.68f).coerceIn(0f, 1f)
 
-private data class PanoramaPalette(
-    val name: String,
-    val sky: List<Color>,
-    val sun: Color,
-    val ridgeFar: Color,
-    val ridgeNear: Color,
-    val foreground: Color,
-    val accent: Color,
-)
-
-private val palettes = listOf(
-    PanoramaPalette(
-        name = "DUSK",
-        sky = listOf(Color(0xFF8583B6), Color(0xFFD9A3A5), Color(0xFFF3C8B8)),
-        sun = Color(0xFFFFDFB2),
-        ridgeFar = Color(0xFF4E526E),
-        ridgeNear = Color(0xFF272B3D),
-        foreground = Color(0xFFF1C8BB),
-        accent = Color(0xFFFFD6B7),
-    ),
-    PanoramaPalette(
-        name = "AURORA",
-        sky = listOf(Color(0xFF1E355A), Color(0xFF3E8C9D), Color(0xFF9DE4C7)),
-        sun = Color(0xFFD8FFF3),
-        ridgeFar = Color(0xFF224E62),
-        ridgeNear = Color(0xFF122D41),
-        foreground = Color(0xFF8BD6C5),
-        accent = Cyan,
-    ),
-    PanoramaPalette(
-        name = "EMBER",
-        sky = listOf(Color(0xFF442742), Color(0xFFB55255), Color(0xFFFFA568)),
-        sun = Color(0xFFFFE0A3),
-        ridgeFar = Color(0xFF713844),
-        ridgeNear = Color(0xFF3B2534),
-        foreground = Color(0xFFE68160),
-        accent = Color(0xFFFFC078),
-    ),
-)
+fun dashboardReveal(progress: Float): Float =
+    ((progress.coerceIn(0f, 1f) - 0.18f) / 0.70f).coerceIn(0f, 1f)
 
 @Composable
-fun FLabHomeScreen(foldSnapshot: FoldSnapshot, hingeAngle: Float?) {
-    var paletteIndex by rememberSaveable { mutableIntStateOf(0) }
-    val palette = palettes[paletteIndex]
-    val haptic = LocalHapticFeedback.current
-    var time by remember { mutableStateOf(LocalTime.now()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1_000)
-            time = LocalTime.now()
-        }
-    }
-
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF07090D)),
-    ) {
-        val mode = windowModeForWidth(maxWidth.value.toInt())
-        val openFraction = hingeOpenFraction(hingeAngle, mode)
-        val settle = remember { Animatable(1f) }
-        var previousMode by rememberSaveable { mutableStateOf(mode.name) }
-
-        LaunchedEffect(mode) {
-            if (previousMode != mode.name) {
-                settle.snapTo(0f)
-                settle.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(170, easing = FastOutSlowInEasing),
-                )
-                previousMode = mode.name
-            }
-        }
-
-        val sceneScale = if (mode == WindowMode.Compact) {
-            lerp(1.018f, 1f, settle.value)
-        } else {
-            lerp(0.985f, 1f, settle.value)
-        }
-        val sceneAlpha = lerp(0.92f, 1f, settle.value)
-        val accent by animateColorAsState(
-            targetValue = palette.accent,
-            animationSpec = tween(350),
-            label = "panoramaAccent",
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(
-                    horizontal = if (mode == WindowMode.Compact) 12.dp else 18.dp,
-                    vertical = 10.dp,
-                ),
-        ) {
-            LabHeader(mode = mode, accent = accent)
-            Spacer(Modifier.height(10.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .graphicsLayer {
-                        scaleX = sceneScale
-                        scaleY = sceneScale
-                        alpha = sceneAlpha
-                    }
-                    .clip(RoundedCornerShape(if (mode == WindowMode.Compact) 34.dp else 40.dp))
-                    .border(
-                        1.dp,
-                        Color.White.copy(alpha = 0.14f),
-                        RoundedCornerShape(if (mode == WindowMode.Compact) 34.dp else 40.dp),
-                    )
-                    .clickable {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        paletteIndex = (paletteIndex + 1) % palettes.size
-                    },
-            ) {
-                SharedPanorama(
-                    palette = palette,
-                    mode = mode,
-                    openFraction = openFraction,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                LockSceneOverlay(
-                    time = time,
-                    palette = palette,
-                    mode = mode,
-                    openFraction = openFraction,
-                    hingeAngle = hingeAngle,
-                    foldSnapshot = foldSnapshot,
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-            TestStrip(
-                mode = mode,
-                palette = palette,
-                hingeAngle = hingeAngle,
-                onNextScene = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    paletteIndex = (paletteIndex + 1) % palettes.size
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun LabHeader(mode: WindowMode, accent: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column {
-            Text(
-                text = "F/LAB",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.5.sp,
-            )
-            Text(
-                text = "DUO TRANSITION · ALPHA 02",
-                color = TextSecondary,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.1.sp,
-            )
-        }
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(100.dp))
-                .background(accent.copy(alpha = 0.12f))
-                .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(100.dp))
-                .padding(horizontal = 11.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(Modifier.size(6.dp).clip(CircleShape).background(accent))
-            Text(
-                text = mode.label.uppercase(),
-                color = accent,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SharedPanorama(
-    palette: PanoramaPalette,
-    mode: WindowMode,
-    openFraction: Float,
-    modifier: Modifier = Modifier,
+fun DuoSurface(
+    role: SurfaceRole,
+    unfoldProgress: Float,
+    rawHingeAngle: Float?,
+    coverWidthMm: Float,
+    status: String,
 ) {
-    Canvas(modifier = modifier) {
-        val worldWidth = size.width * virtualCanvasScale(mode)
-        val viewportOffset = (worldWidth - size.width) / 2f
-        fun worldX(fraction: Float): Float = worldWidth * fraction - viewportOffset
+    val progress = unfoldProgress.coerceIn(0f, 1f)
+    val displayMetrics = LocalView.current.resources.displayMetrics
+    val density = LocalDensity.current
+    val railWidth = with(density) {
+        val pxPerMm = (displayMetrics.xdpi / 25.4f).takeIf { it > 0f } ?: density.density
+        (coverWidthMm * pxPerMm).toDp()
+    }
 
-        drawRect(
-            brush = Brush.verticalGradient(palette.sky),
-            size = size,
-        )
-
-        drawCircle(
-            color = palette.sun.copy(alpha = 0.84f),
-            radius = size.minDimension * 0.14f,
-            center = Offset(worldX(0.72f), size.height * 0.28f),
-        )
-        drawCircle(
-            color = palette.sun.copy(alpha = 0.12f),
-            radius = size.minDimension * 0.24f,
-            center = Offset(worldX(0.72f), size.height * 0.28f),
-        )
-
-        val farRidge = Path().apply {
-            moveTo(worldX(0f), size.height)
-            lineTo(worldX(0f), size.height * 0.61f)
-            lineTo(worldX(0.12f), size.height * 0.48f)
-            lineTo(worldX(0.25f), size.height * 0.58f)
-            lineTo(worldX(0.38f), size.height * 0.42f)
-            lineTo(worldX(0.52f), size.height * 0.56f)
-            lineTo(worldX(0.68f), size.height * 0.40f)
-            lineTo(worldX(0.82f), size.height * 0.55f)
-            lineTo(worldX(1f), size.height * 0.46f)
-            lineTo(worldX(1f), size.height)
-            close()
-        }
-        drawPath(farRidge, palette.ridgeFar.copy(alpha = 0.78f))
-
-        val nearRidge = Path().apply {
-            moveTo(worldX(0f), size.height)
-            lineTo(worldX(0f), size.height * 0.68f)
-            lineTo(worldX(0.18f), size.height * 0.57f)
-            lineTo(worldX(0.32f), size.height * 0.64f)
-            lineTo(worldX(0.49f), size.height * 0.52f)
-            lineTo(worldX(0.66f), size.height * 0.65f)
-            lineTo(worldX(0.84f), size.height * 0.54f)
-            lineTo(worldX(1f), size.height * 0.62f)
-            lineTo(worldX(1f), size.height)
-            close()
-        }
-        drawPath(nearRidge, palette.ridgeNear.copy(alpha = 0.94f))
-
-        val foreground = Path().apply {
-            moveTo(worldX(0f), size.height)
-            lineTo(worldX(0f), size.height * 0.78f)
-            cubicTo(
-                worldX(0.23f), size.height * 0.69f,
-                worldX(0.38f), size.height * 0.86f,
-                worldX(0.57f), size.height * 0.76f,
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        if (role == SurfaceRole.Cover) {
+            CoverGlass(progress = progress)
+        } else {
+            InnerCanvas(
+                progress = progress,
+                railWidth = railWidth,
+                rawHingeAngle = rawHingeAngle,
+                status = status,
             )
-            cubicTo(
-                worldX(0.75f), size.height * 0.67f,
-                worldX(0.88f), size.height * 0.82f,
-                worldX(1f), size.height * 0.72f,
-            )
-            lineTo(worldX(1f), size.height)
-            close()
         }
-        drawPath(foreground, palette.foreground)
+    }
+}
 
-        drawRect(
-            brush = Brush.verticalGradient(
-                listOf(Color.Transparent, Color.Black.copy(alpha = 0.18f)),
-                startY = size.height * 0.55f,
-                endY = size.height,
-            ),
-            size = size,
-        )
-
-        if (mode != WindowMode.Compact) {
-            val creaseHalfWidth = size.width * 0.055f
-            val creaseAlpha = 0.06f + (1f - openFraction) * 0.26f
+@Composable
+private fun CoverGlass(progress: Float) {
+    val frost = frostAmount(progress)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                rotationY = -75f * progress
+                cameraDistance = 18f * density
+                transformOrigin = TransformOrigin(0f, 0.5f)
+            },
+    ) {
+        SharedRail(Modifier.fillMaxSize())
+        Canvas(Modifier.fillMaxSize()) {
             drawRect(
                 brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(alpha = creaseAlpha),
-                        Color.White.copy(alpha = creaseAlpha * 0.48f),
+                    0f to Color.White.copy(alpha = 0.50f * frost),
+                    0.28f to Color.White.copy(alpha = 0.20f * frost),
+                    1f to Color.White.copy(alpha = 0.03f * frost),
+                ),
+            )
+            drawRect(Color.Black.copy(alpha = 0.16f * progress))
+        }
+    }
+}
+
+@Composable
+private fun InnerCanvas(
+    progress: Float,
+    railWidth: Dp,
+    rawHingeAngle: Float?,
+    status: String,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val safeRailWidth = railWidth.coerceAtMost(maxWidth * 0.56f)
+        val reveal = dashboardReveal(progress)
+        val leftWidth = maxWidth - safeRailWidth
+
+        Dashboard(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(leftWidth)
+                .align(Alignment.CenterStart)
+                .graphicsLayer {
+                    alpha = reveal
+                    rotationY = -75f * (1f - progress)
+                    cameraDistance = 22f * density
+                    transformOrigin = TransformOrigin(1f, 0.5f)
+                },
+            progress = progress,
+            rawHingeAngle = rawHingeAngle,
+            status = status,
+        )
+
+        SharedRail(
+            Modifier
+                .fillMaxHeight()
+                .width(safeRailWidth)
+                .align(Alignment.CenterEnd),
+        )
+
+        Canvas(
+            Modifier
+                .fillMaxHeight()
+                .width(34.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = -safeRailWidth),
+        ) {
+            drawRect(
+                Brush.horizontalGradient(
+                    listOf(
+                        Color.Black.copy(alpha = 0.72f * (1f - reveal)),
+                        Color.White.copy(alpha = 0.18f * (1f - progress)),
                         Color.Transparent,
                     ),
-                    startX = size.width / 2f - creaseHalfWidth,
-                    endX = size.width / 2f + creaseHalfWidth,
                 ),
-                topLeft = Offset(size.width / 2f - creaseHalfWidth, 0f),
-                size = Size(creaseHalfWidth * 2f, size.height),
             )
         }
     }
 }
 
 @Composable
-private fun LockSceneOverlay(
-    time: LocalTime,
-    palette: PanoramaPalette,
-    mode: WindowMode,
-    openFraction: Float,
-    hingeAngle: Float?,
-    foldSnapshot: FoldSnapshot,
-) {
-    val timeText = time.format(DateTimeFormatter.ofPattern("HH:mm"))
-    val dateText = LocalDate.now().format(DateTimeFormatter.ofPattern("EEE, d MMM"))
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (mode == WindowMode.Compact) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 62.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = dateText.uppercase(),
-                    color = Color.White.copy(alpha = 0.78f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.3.sp,
-                )
-                Text(
-                    text = timeText,
-                    color = Color.White,
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = (-2).sp,
-                )
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 42.dp, end = 44.dp),
-                horizontalAlignment = Alignment.End,
-            ) {
-                Text(
-                    text = dateText.uppercase(),
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.3.sp,
-                )
-                Text(
-                    text = timeText,
-                    color = Color.White,
-                    fontSize = 58.sp,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = (-2).sp,
-                )
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(24.dp),
-        ) {
-            Text(
-                text = "SCENE ${palette.name}",
-                color = palette.accent,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.4.sp,
+private fun SharedRail(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF16192B), Color(0xFF0D1020), Color(0xFF070812)),
+                ),
             )
-            Spacer(Modifier.height(5.dp))
-            Text(
-                text = if (mode == WindowMode.Compact) {
-                    "Center crop · open to reveal"
-                } else {
-                    "Shared canvas · sides revealed"
-                },
-                color = Color.White.copy(alpha = 0.82f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.End,
-        ) {
-            Text(
-                text = hingeAngle?.let { "${it.toInt()}°" } ?: foldSnapshot.posture.label,
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "OPEN ${(openFraction * 100).toInt()}%",
-                color = Color.White.copy(alpha = 0.62f),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-            )
-        }
-    }
-}
-
-@Composable
-private fun TestStrip(
-    mode: WindowMode,
-    palette: PanoramaPalette,
-    hingeAngle: Float?,
-    onNextScene: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF141821))
-            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(20.dp))
-            .padding(9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .statusBarsPadding()
+            .padding(horizontal = 18.dp, vertical = 22.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(13.dp))
-                .background(palette.accent)
-                .clickable(onClick = onNextScene)
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "CHANGE SCENE",
-                color = Color(0xFF090B0F),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.7.sp,
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    listOf(Color(0xFF7667FF).copy(alpha = 0.40f), Color.Transparent),
+                    center = Offset(size.width * 0.82f, size.height * 0.12f),
+                    radius = size.width * 0.9f,
+                ),
+                radius = size.width * 0.9f,
+                center = Offset(size.width * 0.82f, size.height * 0.12f),
             )
         }
-        Column(modifier = Modifier.weight(1f)) {
+
+        Column(Modifier.fillMaxSize()) {
             Text(
-                text = if (mode == WindowMode.Compact) "OPEN THE FOLD" else "CLOSE THE FOLD",
+                "F/LAB",
                 color = Color.White,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
             )
             Text(
-                text = if (hingeAngle == null) "Window fallback active" else "Live hinge sensor active",
-                color = TextSecondary,
+                "DUO MOTION",
+                color = Color(0xFFAAAFC4),
                 fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.6.sp,
             )
+
+            Spacer(Modifier.weight(1f))
+            Text(
+                "11:00",
+                color = Color.White,
+                fontSize = 54.sp,
+                fontWeight = FontWeight.Light,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                "El contenido permanece.\nEl dispositivo cambia alrededor.",
+                color = Color(0xFFB7B9C8),
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.weight(1f))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                listOf("01", "02", "03", "04").forEachIndexed { index, label ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(15.dp))
+                                .background(
+                                    if (index == 1) Color(0xFF7667FF)
+                                    else Color.White.copy(alpha = 0.09f),
+                                )
+                                .border(
+                                    1.dp,
+                                    Color.White.copy(alpha = 0.12f),
+                                    RoundedCornerShape(15.dp),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.height(7.dp))
+                        Box(
+                            Modifier
+                                .size(4.dp)
+                                .clip(CircleShape)
+                                .background(if (index == 1) Color(0xFF8D82FF) else Color.Transparent),
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
-private fun lerp(start: Float, stop: Float, fraction: Float): Float =
-    start + (stop - start) * fraction.coerceIn(0f, 1f)
+@Composable
+private fun Dashboard(
+    modifier: Modifier,
+    progress: Float,
+    rawHingeAngle: Float?,
+    status: String,
+) {
+    Column(
+        modifier
+            .background(Color(0xFF090B12))
+            .statusBarsPadding()
+            .padding(26.dp),
+    ) {
+        Text(
+            "CONTINUIDAD",
+            color = Color(0xFF8D82FF),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 2.sp,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "La interfaz no salta.\nLa bisagra revela espacio.",
+            color = Color.White,
+            fontSize = 31.sp,
+            lineHeight = 36.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(28.dp))
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MetricCard("APERTURA", "${(progress * 100).roundToInt()}%", Modifier.weight(1f))
+            MetricCard("BISAGRA", rawHingeAngle?.let { "${it.roundToInt()}°" } ?: "—", Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(12.dp))
+        MetricCard("SUPERFICIE", status.uppercase(), Modifier.fillMaxWidth())
+        Spacer(Modifier.weight(1f))
+        Text(
+            "ALPHA 03 · DUAL-SURFACE PROBE",
+            color = Color(0xFF7D8194),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+        )
+    }
+}
+
+@Composable
+private fun MetricCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0xFF151824))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
+            .padding(18.dp),
+    ) {
+        Text(label, color = Color(0xFF858A9D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
