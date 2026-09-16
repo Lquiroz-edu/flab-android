@@ -17,7 +17,7 @@ class PageView(context: Context) : View(context), SensorEventListener {
     private val sensors = context.getSystemService(SensorManager::class.java)
     private var trigger = FoldTrigger()
     private var listening = false
-    var enabled = true
+    var respondToFold = true
         set(value) { field=value; if(value && windowVisibility==VISIBLE) startSensors() else stopSensors() }
 
     init { renderer.reload(); contentDescription="Vista previa de página. Desliza horizontalmente o usa el control de apertura." }
@@ -47,7 +47,7 @@ class PageView(context: Context) : View(context), SensorEventListener {
     }
     override fun performClick(): Boolean { super.performClick(); return true }
     private fun startSensors() {
-        if(listening || !enabled) return
+        if(listening || !respondToFold) return
         trigger=FoldTrigger()
         val sensor=sensors.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE,false)
             ?: sensors.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE,true)

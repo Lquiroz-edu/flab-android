@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                                 view.renderer.blur = blur
                                 view.renderer.radius = radius
                                 view.renderer.dark = dark
-                                view.enabled = enabled
+                                view.respondToFold = enabled
                             }
                         },
                         update = { view ->
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                             view.renderer.blur = blur
                             view.renderer.radius = radius
                             view.renderer.dark = dark
-                            view.enabled = enabled
+                            view.respondToFold = enabled
                             imageRevision.hashCode()
                             view.invalidate()
                         },
