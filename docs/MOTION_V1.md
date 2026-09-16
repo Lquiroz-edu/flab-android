@@ -17,7 +17,7 @@ Public hinge sensor: non-wake-up preferred, then wake-up. Posture boundaries and
 in physical display dimensions trigger the effect. Intermediate readings are reported
 only after five distinct noncanonical angles; animation remains timed in both cases.
 
-Independent nine-sample AGSL blur with continuous spatial profile and small displacement.
+Independent AGSL displacement with Android RenderEffect Gaussian blur.
 No borrowed shader source. Touch-through, non-focusable, secure overlay; 900 ms watchdog.
 No forced dual display, display-state override, Shizuku, root, unlock or remote action.
 
