@@ -1,298 +1,137 @@
 package com.lquiroz.flab
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.res.Configuration
+import android.animation.ValueAnimator
+import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import android.os.Build
+import android.graphics.Paint
 import android.os.Bundle
-import android.os.SystemClock
-import android.view.Gravity
-import android.view.WindowManager
-import android.widget.TextView
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.window.area.*
-import androidx.window.core.ExperimentalWindowApi
-import com.lquiroz.flab.ui.theme.FLabTheme
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import androidx.compose.ui.viewinterop.AndroidView
+import com.lquiroz.flab.motion.FrostView
+import com.lquiroz.flab.motion.ModuleState
 
-/**
- * A foreground-only capability probe, not a system animation or Good Lock plugin.
- * No background service, private API, automatic retry or device-state override.
- */
-@OptIn(ExperimentalWindowApi::class)
-class MainActivity : ComponentActivity(), SensorEventListener {
-    private lateinit var sensors: SensorManager
-    private lateinit var controller: WindowAreaController
-    private var rear: WindowAreaInfo? = null
-    private var session: WindowAreaSessionPresenter? = null
-    private var inFlight = false
-    private var armed = false
-    private var generation = 0
-    private var startMs = 0L
-    private var lastAngle: Float? = null
-    private val angles = linkedSetOf<Int>()
-    private val events = mutableStateListOf<String>()
-
-    private var enabled by mutableStateOf(false)
-    private var capability by mutableStateOf("Sin datos todavía")
-    private var sessionStatus by mutableStateOf("Desactivada")
-    private var sensorStatus by mutableStateOf("Sin medir")
-    private var sampleCount by mutableIntStateOf(0)
-    private var angle by mutableStateOf<Float?>(null)
-    private var observedAngles by mutableStateOf("—")
-    private var copied by mutableStateOf(false)
-
+class MainActivity : ComponentActivity() {
+    private var previewAnimation: ValueAnimator? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        sensors = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        controller = WindowAreaController.getOrCreate()
-        lifecycleScope.launch {
-            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                controller.windowAreaInfos.collect { infos ->
-                    rear = infos.firstOrNull { it.type == WindowAreaInfo.Type.TYPE_REAR_FACING }
-                    val current = rear?.getCapability(
-                        WindowAreaCapability.Operation.OPERATION_PRESENT_ON_AREA
-                    )?.status?.toString() ?: "No expuesta por el sistema"
-                    if (current != capability) {
-                        capability = current
-                        record("Capacidad: $current")
-                    }
-                    requestIfReady()
-                }
-            }
-        }
-        setContent { FLabTheme { ModuleScreen() } }
-    }
-
-    private fun record(message: String) {
-        if (!enabled && startMs == 0L) return
-        val elapsed = SystemClock.elapsedRealtime() - startMs
-        if (events.size >= 150) events.removeAt(0)
-        events.add("+${elapsed} ms · $message")
-        copied = false
-    }
-
-    private fun enableProbe() {
-        if (inFlight) return
-        events.clear()
-        angles.clear()
-        lastAngle = null
-        angle = null
-        observedAngles = "—"
-        sampleCount = 0
-        startMs = SystemClock.elapsedRealtime()
-        enabled = true
-        generation++
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        record("Inicio: ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE}, SDK ${Build.VERSION.SDK_INT}")
-        record("Firmware: ${Build.DISPLAY}")
-        record("Capacidad: $capability")
-        recordGeometry()
-        val hinge = if (Build.VERSION.SDK_INT >= 30) sensors.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE) else null
-        sensorStatus = if (hinge == null) "Sensor público no disponible" else {
-            val registered = runCatching {
-                sensors.registerListener(this, hinge, SensorManager.SENSOR_DELAY_GAME)
-            }.getOrDefault(false)
-            if (registered) "Escuchando: ${hinge.name}" else "No se pudo registrar el sensor"
-        }
-        record(sensorStatus)
-        sessionStatus = "Pulsa Probar dos pantallas"
-    }
-
-    private fun disableProbe(reason: String) {
-        armed = false
-        enabled = false
-        generation++
-        sensors.unregisterListener(this)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val previous = session
-        session = null
-        val failure = runCatching { previous?.close() }.exceptionOrNull()
-        sessionStatus = if (failure == null) "Desactivada" else "No se confirmó el cierre; sal de la app"
-        record(reason)
-        if (failure != null) record("Cierre: ${failure.javaClass.simpleName}")
-    }
-
-    private fun requestIfReady() {
-        if (!enabled || !armed || inFlight || session != null) return
-        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
-        val area = rear ?: return
-        val status = area.getCapability(WindowAreaCapability.Operation.OPERATION_PRESENT_ON_AREA).status
-        if (status != WindowAreaCapability.Status.WINDOW_AREA_STATUS_AVAILABLE) return
-        val token = area.token ?: return
-        armed = false
-        inFlight = true
-        val requestGeneration = generation
-        sessionStatus = "Solicitud enviada"
-        record("Solicitud de presentación")
-        val callback = object : WindowAreaPresentationSessionCallback {
-            override fun onSessionStarted(presenter: WindowAreaSessionPresenter) {
-                inFlight = false
-                if (!enabled || generation != requestGeneration) {
-                    runCatching { presenter.close() }
-                    return
-                }
-                session = presenter
-                sessionStatus = "Sesión concedida"
-                record("Sesión concedida; bounds=${area.metrics.bounds}")
-                // Deliberately no guessed cover/inner role, rotation or artificial angle.
-                val view = object : TextView(presenter.context) {
-                    private var reported = false
-                    override fun onDraw(canvas: Canvas) {
-                        super.onDraw(canvas)
-                        if (!reported) {
-                            reported = true
-                            post {
-                                if (enabled && generation == requestGeneration) {
-                                    record("Primer onDraw secundario (no mide encendido físico)")
+        val prefs = getSharedPreferences("motion", MODE_PRIVATE)
+        setContent {
+            MaterialTheme(colorScheme = darkColorScheme(
+                primary = Color(0xFF9AE9DE), background = Color(0xFF101416),
+                surface = Color(0xFF1C2327), onSurface = Color(0xFFF1F5F4))) {
+                var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
+                var strength by remember { mutableFloatStateOf(prefs.getFloat("strength", 0.7f)) }
+                var disclose by remember { mutableStateOf(false) }
+                var preview by remember { mutableStateOf<FrostView?>(null) }
+                val connected by ModuleState.connected
+                val status by ModuleState.status
+                val sensor by ModuleState.sensor
+                Surface(Modifier.fillMaxSize()) {
+                    Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState())
+                        .padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Text("F/LAB", style = MaterialTheme.typography.displayMedium)
+                        Text("Movimiento suave · V1", style = MaterialTheme.typography.titleLarge)
+                        Text("Un instante de cristal difuminado al plegar. Tu One UI, tus apps.",
+                            style = MaterialTheme.typography.bodyLarge)
+                        Card {
+                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Activar movimiento", modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.titleMedium)
+                                    Switch(checked = enabled, onCheckedChange = { value ->
+                                        if (value && !prefs.getBoolean("consent", false)) disclose = true
+                                        else {
+                                            enabled = value
+                                            prefs.edit().putBoolean("enabled", value).apply()
+                                        }
+                                    })
+                                }
+                                Text(if (!enabled) "Apagado" else if (!connected)
+                                    "Falta habilitar F/LAB en Accesibilidad" else status)
+                                if (!connected) Button(onClick = { disclose = true }) {
+                                    Text("Configurar permiso")
                                 }
                             }
                         }
+                        Text("Así se ve", style = MaterialTheme.typography.titleMedium)
+                        AndroidView(factory = { context ->
+                            FrostView(context, previewBitmap()).also { preview = it; it.strength = strength }
+                        }, update = { it.strength = strength }, modifier = Modifier.fillMaxWidth().height(210.dp))
+                        OutlinedButton(onClick = {
+                            previewAnimation?.cancel()
+                            previewAnimation = ValueAnimator.ofFloat(0f, 1f).apply {
+                                duration = 1000
+                                addUpdateListener { preview?.amount = kotlin.math.sin(
+                                    Math.PI * (it.animatedValue as Float)).toFloat() }
+                                start()
+                            }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("Ver efecto · sin permisos") }
+                        Text("Intensidad", style = MaterialTheme.typography.titleMedium)
+                        Slider(value = strength, onValueChange = { strength = it }, valueRange = 0.2f..1.5f,
+                            onValueChangeFinished = { prefs.edit().putFloat("strength", strength).apply() })
+                        Text("Cómo usarlo", style = MaterialTheme.typography.titleMedium)
+                        Text("Actívalo, concede el permiso y vuelve a tu pantalla de inicio. Abre y cierra el Fold a velocidad normal. Puedes apagarlo aquí en cualquier momento.")
+                        Text("Transición temporizada", style = MaterialTheme.typography.titleMedium)
+                        Text("V1 reacciona al cambio de postura o pantalla. Con lecturas de 0°, 90° y 180° no sigue el ángulo exacto de tu mano. No altera el encendido de las pantallas ni el bloqueo de Samsung.")
+                        if (connected) Text(sensor, style = MaterialTheme.typography.bodySmall)
+                        Text("Privacidad", style = MaterialTheme.typography.titleMedium)
+                        Text("Usa una captura temporal en memoria para el efecto. No guarda imágenes ni las envía. Se omite en pantallas protegidas o bloqueadas. La capa deja pasar los toques y desaparece en menos de un segundo.")
+                        Text("Si Android bloquea el permiso: Ajustes → Aplicaciones → F/LAB → ⋮ → Permitir ajustes restringidos; después vuelve a Accesibilidad.", style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) {
+                            Text("Administrar o revocar permiso")
+                        }
+                        Text("F/LAB 1.0 · Independiente de Samsung y Apple", style = MaterialTheme.typography.labelSmall)
                     }
-                }.apply {
-                    text = "F/LAB\nSegunda superficie\n\nPrueba técnica · sin animación"
-                    textSize = 24f
-                    gravity = Gravity.CENTER
-                    setTextColor(android.graphics.Color.WHITE)
-                    setBackgroundColor(android.graphics.Color.rgb(24, 40, 52))
-                    keepScreenOn = true
                 }
-                runCatching { presenter.setContentView(view) }.onFailure {
-                    record("Fallo al dibujar: ${it.javaClass.simpleName}")
-                    runCatching { presenter.close() }
-                    session = null
-                    sessionStatus = "Prueba fallida; sin reintento automático"
-                }
-            }
-
-            override fun onSessionEnded(t: Throwable?) {
-                inFlight = false
-                if (generation != requestGeneration) return
-                session = null
-                sessionStatus = "Sesión terminada; reintento manual"
-                record("Fin de sesión: ${t?.javaClass?.simpleName ?: "sin error"}")
-            }
-
-            override fun onContainerVisibilityChanged(isVisible: Boolean) {
-                if (generation == requestGeneration) record("Contenedor visible: $isVisible")
+                if (disclose) AlertDialog(onDismissRequest = { disclose = false },
+                    title = { Text("Permitir el efecto sobre otras apps") },
+                    text = { Text(getString(R.string.fold_disclosure)) },
+                    confirmButton = { TextButton(onClick = {
+                        prefs.edit().putBoolean("consent", true).putBoolean("enabled", true).apply()
+                        enabled = true
+                        disclose = false
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }) { Text("Entendido · abrir ajustes") } },
+                    dismissButton = { TextButton(onClick = { disclose = false }) { Text("Ahora no") } })
             }
         }
-        runCatching {
-            controller.presentContentOnWindowArea(token, this, ContextCompat.getMainExecutor(this), callback)
-        }.onFailure {
-            inFlight = false
-            sessionStatus = "Solicitud rechazada; reintento manual"
-            record("Rechazo: ${it.javaClass.simpleName}")
-        }
     }
-
-    override fun onSensorChanged(event: SensorEvent) {
-        if (!enabled || event.sensor.type != Sensor.TYPE_HINGE_ANGLE) return
-        val value = event.values.firstOrNull() ?: return
-        if (!value.isFinite()) return
-        sampleCount++
-        angle = value
-        if (angles.size < 181) angles.add(value.roundToInt())
-        observedAngles = angles.take(16).joinToString() + if (angles.size > 16) " … (${angles.size} valores)" else ""
-        if (lastAngle == null || kotlin.math.abs(value - lastAngle!!) >= 5f) {
-            record("Ángulo recibido: ${value}°")
-            lastAngle = value
-        }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-
-    private fun recordGeometry() {
-        record("Ventana: ${resources.configuration.screenWidthDp} × ${resources.configuration.screenHeightDp} dp")
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        if (enabled) { record("Cambio de configuración"); recordGeometry() }
-    }
-
     override fun onStop() {
-        if (enabled) disableProbe("Prueba detenida al pasar a segundo plano")
+        previewAnimation?.cancel()
+        previewAnimation = null
         super.onStop()
     }
 
-    override fun onDestroy() {
-        sensors.unregisterListener(this)
-        runCatching { session?.close() }
-        super.onDestroy()
-    }
-
-    private fun copyReport() {
-        val report = "F/LAB · 1.0.0-alpha04-probe\n" +
-            "Muestras: $sampleCount\nÁngulos redondeados: ${angles.joinToString()}\n" +
-            "Últimos ${events.size} eventos. onDraw no prueba visibilidad física.\n" +
-            events.joinToString("\n")
-        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-            .setPrimaryClip(ClipData.newPlainText("F/LAB diagnóstico", report))
-        copied = true
-    }
-
-    @Composable
-    private fun ModuleScreen() {
-        Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("F/LAB", style = MaterialTheme.typography.headlineLarge)
-                Text("Movimiento al plegar", style = MaterialTheme.typography.titleLarge)
-                Text("Laboratorio · Alpha 04\nConserva One UI Home. No es un módulo oficial de Good Lock ni modifica otras apps.")
-                Card(Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Diagnóstico", style = MaterialTheme.typography.titleMedium)
-                            Text(if (enabled) "Activo solo en esta app" else "Desactivado")
-                        }
-                        Switch(checked = enabled, enabled = enabled || !inFlight,
-                            onCheckedChange = { if (it) enableProbe() else disableProbe("Desactivado por el usuario") })
-                    }
-                }
-                Text("Abre el Fold, activa el diagnóstico y pulsa Probar dos pantallas. Pliega lentamente sin salir de F/LAB.")
-                Text("Pantallas: $capability\nSesión: $sessionStatus")
-                Button(enabled = enabled && !inFlight && session == null && !armed,
-                    onClick = {
-                        armed = true
-                        sessionStatus = "Esperando capacidad disponible; apaga el interruptor para cancelar"
-                        record("Prueba solicitada por el usuario")
-                        requestIfReady()
-                    }) { Text("Probar dos pantallas") }
-                Text("$sensorStatus\nÁngulo real recibido: ${angle?.let { "$it°" } ?: "—"}\nMuestras: $sampleCount\nValores observados: $observedAngles")
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Acceso avanzado", style = MaterialTheme.typography.titleMedium)
-                        Text("Shizuku no conectado ni integrado en esta versión. No se solicitan permisos elevados ni se fuerzan estados de pantalla.")
-                    }
-                }
-                OutlinedButton(enabled = events.isNotEmpty(), onClick = ::copyReport) {
-                    Text(if (copied) "Informe copiado" else "Copiar informe")
-                }
-                Text("Sin franja ni animación de prueba. Este diagnóstico determina qué permite tu firmware antes de implementar el efecto soft blur.")
-                Text(events.takeLast(8).joinToString("\n"), style = MaterialTheme.typography.bodySmall)
-            }
+    private fun previewBitmap(): Bitmap {
+        val bitmap = Bitmap.createBitmap(900, 500, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(android.graphics.Color.rgb(25, 46, 52))
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = android.graphics.Color.rgb(156, 235, 218)
+        canvas.drawCircle(740f, 110f, 210f, paint)
+        paint.color = android.graphics.Color.rgb(67, 111, 129)
+        canvas.drawCircle(610f, 420f, 270f, paint)
+        paint.color = android.graphics.Color.WHITE
+        paint.textSize = 55f
+        canvas.drawText("Tu mundo. Más suave.", 40f, 110f, paint)
+        paint.textSize = 28f
+        canvas.drawText("F/LAB · Movimiento", 40f, 160f, paint)
+        for (i in 0..4) {
+            paint.color = android.graphics.Color.rgb(210 - i * 20, 225 - i * 10, 225)
+            val left = 45f + i * 170
+            canvas.drawRoundRect(left, 330f, left + 105, 435f, 26f, 26f, paint)
         }
+        return bitmap
     }
 }

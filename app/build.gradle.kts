@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "com.lquiroz.flab"
-        minSdk = 26
+        minSdk = 33
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.0-alpha04-probe"
+        versionCode = 6
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
