@@ -1,4 +1,4 @@
-# F/LAB Papel en movimiento 1.1
+# F/LAB Fold Motion MVP 0.5
 
 An installable Android 13+ live wallpaper that gives the Fold home screen a physical
 page transition. It follows F/LAB's ivory, black and cobalt editorial direction and
@@ -6,13 +6,16 @@ supports a user-selected landscape.
 
 ## Permission and operation
 
-The app declares no runtime, Accessibility, storage, overlay or network permission.
-Android binds the wallpaper engine with `BIND_WALLPAPER`; the user applies it through
-the system live-wallpaper picker.
+Fold Motion needs no runtime, Accessibility, storage, overlay or network permission.
+Android binds the wallpaper engine with `BIND_WALLPAPER`; the user applies it through the
+system live-wallpaper picker. The separate optional App awareness experiment declares an
+Accessibility service but cannot retrieve content, take screenshots or perform gestures.
 
 The renderer keeps two leaves on a shared canvas. The moving leaf uses a perspective
 quadrilateral, rounded clipping, a soft Gaussian RenderEffect and a restrained shadow.
-The public hinge sensor and changes in physical surface size trigger the timed page turn.
+The central Core consumes the public hinge sensor. Continuous samples map directly to visual
+progress so stopping the physical hinge also stops visual progress. Devices that expose only
+coarse postures receive a disclosed, profile-dependent perceptual interpolation.
 The engine runs only while the wallpaper is visible and unregisters the sensor otherwise.
 
 Controls include manual preview, motion softness, corner radius, light/dark stage,

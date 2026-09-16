@@ -1,3 +1,5 @@
 <resources>
     <string name="wallpaper_description">Paisaje con transición de página al cambiar de postura. No captura la pantalla ni modifica otras apps.</string>
+    <string name="access_summary">Selecciona perfiles según la aplicación visible.</string>
+    <string name="access_description">F/LAB utiliza este acceso opcional sólo para conocer qué aplicación está en primer plano y cuándo cambia su ventana. No recupera contenido, no lee texto, no toma capturas y no realiza gestos.</string>
 </resources>

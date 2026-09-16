@@ -3,22 +3,21 @@ package com.lquiroz.flab.studio
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
-import android.hardware.*
 import android.view.MotionEvent
 import android.view.View
-import com.lquiroz.flab.motion.FoldTrigger
+import com.lquiroz.flab.core.FLabCore
+import com.lquiroz.flab.core.FLabState
 
-class PageView(context: Context) : View(context), SensorEventListener {
+class PageView(context: Context) : View(context), FLabCore.Listener {
     val renderer = PageRenderer(context)
     var progress = 1f
         private set
     var onProgress: ((Float) -> Unit)? = null
     private var animation: ValueAnimator? = null
-    private val sensors = context.getSystemService(SensorManager::class.java)
-    private var trigger = FoldTrigger()
-    private var listening = false
+    private var physicalMotion = false
+    private val settle = Runnable { physicalMotion = false; invalidate() }
     var respondToFold = true
-        set(value) { field=value; if(value && windowVisibility==VISIBLE) startSensors() else stopSensors() }
+        set(value) { field=value }
 
     init { renderer.reload(); contentDescription="Vista previa de página. Desliza horizontalmente o usa el control de apertura." }
     fun setProgress(value: Float) {
@@ -35,7 +34,7 @@ class PageView(context: Context) : View(context), SensorEventListener {
             start()
         }
     }
-    override fun onDraw(canvas: Canvas) { renderer.draw(canvas,width,height,progress,animation?.isRunning==true) }
+    override fun onDraw(canvas: Canvas) { renderer.draw(canvas,width,height,progress,animation?.isRunning==true || physicalMotion) }
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when(event.actionMasked) {
             MotionEvent.ACTION_DOWN -> { parent?.requestDisallowInterceptTouchEvent(true); setProgress(1-event.x/width) }
@@ -46,22 +45,24 @@ class PageView(context: Context) : View(context), SensorEventListener {
         return true
     }
     override fun performClick(): Boolean { super.performClick(); return true }
-    private fun startSensors() {
-        if(listening || !respondToFold) return
-        trigger=FoldTrigger()
-        val sensor=sensors.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE,false)
-            ?: sensors.getDefaultSensor(Sensor.TYPE_HINGE_ANGLE,true)
-        listening=sensor!=null && sensors.registerListener(this,sensor,20_000)
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        FLabCore.addListener(this)
     }
-    private fun stopSensors() { sensors.unregisterListener(this); listening=false; animation?.cancel(); animation=null }
-    override fun onWindowVisibilityChanged(visibility: Int) {
-        super.onWindowVisibilityChanged(visibility)
-        if(visibility==VISIBLE) startSensors() else stopSensors()
+    override fun onDetachedFromWindow() {
+        FLabCore.removeListener(this)
+        removeCallbacks(settle)
+        animation?.cancel(); animation=null
+        super.onDetachedFromWindow()
     }
-    override fun onDetachedFromWindow() { stopSensors(); super.onDetachedFromWindow() }
-    override fun onSensorChanged(event: SensorEvent) {
-        val angle=event.values.firstOrNull() ?: return
-        if(trigger.accept(angle,android.os.SystemClock.elapsedRealtime())) play(if(angle>=175) 1f else 0f)
+    override fun onState(state: FLabState) {
+        if (!respondToFold || !state.enabled || animation?.isRunning == true) return
+        if (kotlin.math.abs(progress - state.foldProgress) < .001f) return
+        progress = state.foldProgress
+        physicalMotion = true
+        onProgress?.invoke(progress)
+        removeCallbacks(settle)
+        postDelayed(settle, 90)
+        invalidate()
     }
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 }
