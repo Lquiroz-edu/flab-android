@@ -1,0 +1,5 @@
+<resources>
+    <string name="wallpaper_description">Paisaje con transición de página al cambiar de postura. No captura la pantalla ni modifica otras apps.</string>
+    <string name="access_summary">Perfiles por app y continuidad visual opcional durante el pliegue.</string>
+    <string name="access_description">F/LAB reconoce la aplicación visible. Sólo con System Motion LAB activado toma un frame efímero durante el pliegue; se mantiene en memoria, no se guarda ni se transmite. No lee nodos o texto y no realiza gestos.</string>
+</resources>

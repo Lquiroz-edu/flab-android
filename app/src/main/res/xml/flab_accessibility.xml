@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:notificationTimeout="120"
+    android:canRetrieveWindowContent="false"
+    android:canPerformGestures="false"
+    android:canTakeScreenshot="true"
+    android:isAccessibilityTool="false"
+    android:description="@string/access_description"
+    android:summary="@string/access_summary"
+    android:settingsActivity="com.lquiroz.flab.MainActivity" />

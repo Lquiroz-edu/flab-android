@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "com.lquiroz.flab"
-        minSdk = 26
+        minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 9
+        versionName = "0.6.0-motion-lab"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.window)
+    implementation(libs.kotlinx.coroutines.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
