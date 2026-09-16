@@ -47,6 +47,13 @@ object ProfileCatalog : CompatibilityRulesProvider {
     override fun rules() = catalog
     override fun find(packageName: String?) = catalog.firstOrNull { packageName in it.packages }
 
+    fun isProtected(packageName: String?): Boolean {
+        if (packageName == null) return true
+        if (find(packageName)?.safe == true) return true
+        val normalized = packageName.lowercase()
+        return PROTECTED_HINTS.any { it in normalized }
+    }
+
     fun immersiveEnabled(context: Context, rule: CompatibilityRule): Boolean =
         context.getSharedPreferences("profiles", Context.MODE_PRIVATE)
             .getBoolean("immersive_${rule.id}", false)
@@ -55,4 +62,9 @@ object ProfileCatalog : CompatibilityRulesProvider {
         context.getSharedPreferences("profiles", Context.MODE_PRIVATE)
             .edit().putBoolean("immersive_${rule.id}", enabled).apply()
     }
+
+    private val PROTECTED_HINTS = setOf(
+        "bank", "wallet", "payment", "authenticator", "password", "keyguard",
+        "permissioncontroller", "packageinstaller", "systemui", "camera", "knox", ".spay", "finance",
+    )
 }

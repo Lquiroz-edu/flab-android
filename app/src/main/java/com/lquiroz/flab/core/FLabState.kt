@@ -8,6 +8,7 @@ data class FLabState(
     val enabled: Boolean = true,
     val foldPosture: FoldPosture = FoldPosture.UNKNOWN,
     val hingeAngle: Float? = null,
+    val hingeVelocityDegPerSecond: Float = 0f,
     val foldProgress: Float = 1f,
     val sensorMode: SensorMode = SensorMode.UNAVAILABLE,
     val orientation: String = "Unknown",

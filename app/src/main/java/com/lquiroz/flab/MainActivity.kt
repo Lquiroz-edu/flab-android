@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
         val titles = listOf("Tu Fold, más coherente.", "Intervención mínima.", "Tú mantienes el control.")
         val bodies = listOf(
             "F/LAB coordina la bisagra, las pantallas y sus módulos desde un único Core. Motion puede seguir el ángulo real cuando Samsung lo publica.",
-            "No sustituye One UI ni modifica otras aplicaciones. App awareness es opcional y nunca lee mensajes, contraseñas o imágenes.",
+            "No sustituye One UI. Fold Motion funciona sin Accesibilidad; System Motion LAB es opcional y usa una captura efímera sólo durante el cambio de pantalla.",
             "Puedes probar cada efecto, desactivar F/LAB al instante y restablecer toda su configuración desde Diagnostics.",
         )
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -139,18 +139,29 @@ class MainActivity : ComponentActivity() {
         var accessDialog by remember { mutableStateOf(false) }
         val prefs = remember { getSharedPreferences("flab", MODE_PRIVATE) }
         var experiment by remember { mutableStateOf(prefs.getBoolean("immersive_experiment", false)) }
+        var systemMotion by remember { mutableStateOf(prefs.getBoolean("system_motion_experiment", false)) }
         Page(modifier) {
             BrandHeader("El Fold,\nmejor conectado.", if (state.enabled) "F/LAB ACTIVE" else "F/LAB DISABLED")
             HealthCard(state)
             Section("MÓDULOS")
             ModuleCard("Fold Motion", if (state.enabled) "ON" else "OFF",
                 "${state.foldPosture.name.lowercase().replaceFirstChar { it.uppercase() }} · ${state.sensorMode.name.lowercase()}", onMotion)
-            ModuleCard("Continuity", "CORE", "Ventana, orientación y display coordinados") { }
+            ModuleCard("Continuity", if (systemMotion) "LAB ON" else "CORE",
+                if (systemMotion) "Frame efímero + shader gobernado por la bisagra" else "Ventana, orientación y display coordinados") { onMotion() }
             ModuleCard("App awareness", if (state.accessibilityConnected) "ON" else "OPTIONAL",
                 if (state.accessibilityConnected) "Perfiles por aplicación disponibles" else "Requiere consentimiento de Accesibilidad") {
                 accessDialog = true
             }
             CardBlock {
+                ToggleLine("System Motion · LAB", systemMotion) {
+                    systemMotion = it
+                    prefs.edit().putBoolean("system_motion_experiment", it).apply()
+                    if (it && !state.accessibilityConnected) accessDialog = true
+                }
+                Text("Extiende Fold Motion sobre One UI y apps compatibles. Captura un único frame en memoria, no recibe toques y se retira al terminar.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = .62f))
+                HorizontalDivider(Modifier.padding(vertical = 10.dp))
                 ToggleLine("Immersive experimental", experiment) {
                     experiment = it
                     prefs.edit().putBoolean("immersive_experiment", it).apply()
@@ -221,7 +232,7 @@ class MainActivity : ComponentActivity() {
         val prefs = remember { getSharedPreferences("studio", MODE_PRIVATE) }
         var preview by remember { mutableStateOf<PageView?>(null) }
         var progress by remember { mutableFloatStateOf(state.foldProgress) }
-        var blur by remember { mutableFloatStateOf(prefs.getFloat("blur", .45f)) }
+        var blur by remember { mutableFloatStateOf(prefs.getFloat("blur", .58f)) }
         var radius by remember { mutableFloatStateOf(prefs.getFloat("radius", .045f)) }
         var dark by remember { mutableStateOf(prefs.getBoolean("dark", false)) }
         var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", true)) }
@@ -243,6 +254,9 @@ class MainActivity : ComponentActivity() {
             BrandHeader("Movimiento\nfísico.", "FOLD MOTION")
             Text(if (state.sensorMode == SensorMode.CONTINUOUS) "Siguiendo bisagra · ${state.hingeAngle?.toInt()}°"
                 else "Fallback perceptivo · ${state.foldPosture}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Text("AGSL físico · sin línea central · ${state.hingeVelocityDegPerSecond.toInt()}°/s",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f))
             AndroidView(
                 factory = { context -> PageView(context).also { preview = it; it.onProgress = { p -> progress = p } } },
                 update = { view ->
@@ -314,6 +328,7 @@ class MainActivity : ComponentActivity() {
                 Diagnostic("Device", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
                 Diagnostic("Android", "${android.os.Build.VERSION.RELEASE} · API ${android.os.Build.VERSION.SDK_INT}")
                 Diagnostic("Fold", "${state.foldPosture} · ${state.hingeAngle?.let { "${it.toInt()}°" } ?: "sin ángulo"}")
+                Diagnostic("Velocity", "${state.hingeVelocityDegPerSecond.toInt()}°/s")
                 Diagnostic("Sensor", state.sensorMode.name)
                 Diagnostic("Window", "${state.windowWidth}×${state.windowHeight} · ${state.orientation}")
                 Diagnostic("Display", state.activeDisplay.toString())
@@ -347,7 +362,7 @@ class MainActivity : ComponentActivity() {
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("App awareness · Accesibilidad") },
-            text = { Text("F/LAB solicita Accesibilidad sólo para conocer el nombre técnico de la app en primer plano y los cambios de ventana. Se utiliza para seleccionar perfiles y, únicamente si activas Immersive experimental, mostrar bordes visuales no interactivos.\n\nNo lee textos, mensajes, contraseñas ni contenido de pantalla. No realiza capturas, taps, gestos o acciones automáticas. No transmite datos. Es opcional: Fold Motion y la app funcionan sin este acceso. Puedes revocarlo en cualquier momento.") },
+            text = { Text("F/LAB solicita Accesibilidad para reconocer la app en primer plano y aplicar perfiles. Si activas System Motion LAB, también toma un único frame de la pantalla al comenzar cada fase del pliegue y lo muestra brevemente con un shader controlado por la bisagra.\n\nLa captura vive sólo en memoria, se destruye al terminar y nunca se guarda ni transmite. Android bloquea las pantallas protegidas y F/LAB excluye banca, pagos, contraseñas, permisos, cámara y otras superficies sensibles. La capa no recibe toques. F/LAB no lee nodos, textos, mensajes o contraseñas, ni ejecuta gestos o acciones.\n\nEs opcional: Preview y live wallpaper funcionan sin este acceso. Puedes revocarlo en cualquier momento.") },
             confirmButton = { TextButton(onClick = onContinue) { Text("ACEPTO · ABRIR AJUSTES") } },
             dismissButton = { TextButton(onClick = onDismiss) { Text("AHORA NO") } },
         )

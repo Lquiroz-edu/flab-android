@@ -31,6 +31,9 @@ object FLabCore : SensorEventListener, DisplayManager.DisplayListener,
     private var sensor: Sensor? = null
     private var listening = false
     private var fallbackAnimation: ValueAnimator? = null
+    private var lastSensorAngle: Float? = null
+    private var lastSensorTimestampNanos: Long = 0L
+    private var filteredVelocity = 0f
     private var started = false
 
     private val mutableState = MutableStateFlow(FLabState())
@@ -132,6 +135,11 @@ object FLabCore : SensorEventListener, DisplayManager.DisplayListener,
         update { it.copy(lastModuleError = message, lastEvent = "$module failed safely") }
     }
 
+    fun reportModuleEvent(event: String) {
+        ensureStarted()
+        update { it.copy(lastEvent = event.take(120)) }
+    }
+
     fun reset() {
         ensureStarted()
         prefs.edit().clear().putBoolean("global_enabled", true).apply()
@@ -152,7 +160,7 @@ object FLabCore : SensorEventListener, DisplayManager.DisplayListener,
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLine("Fold: ${s.foldPosture} · ${s.hingeAngle?.let { "%.1f°".format(it) } ?: "unavailable"}")
-            appendLine("Sensor: ${s.sensorMode}")
+            appendLine("Motion: ${"%.0f°/s".format(s.hingeVelocityDegPerSecond)} · ${s.sensorMode}")
             appendLine("Window: ${s.windowWidth}×${s.windowHeight} · ${s.orientation} · display ${s.activeDisplay}")
             appendLine("F/LAB: ${if (s.enabled) "enabled" else "disabled"} · ${s.profile}")
             appendLine("Modules: ${s.activeModules.joinToString().ifBlank { "none" }}")
@@ -167,6 +175,16 @@ object FLabCore : SensorEventListener, DisplayManager.DisplayListener,
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_HINGE_ANGLE || !mutableState.value.enabled) return
         val reading = motion.read(event.values.firstOrNull() ?: return) ?: return
+        val previousAngle = lastSensorAngle
+        if (previousAngle != null && lastSensorTimestampNanos > 0L && event.timestamp > lastSensorTimestampNanos) {
+            val seconds = (event.timestamp - lastSensorTimestampNanos) / 1_000_000_000f
+            val instantaneous = kotlin.math.abs(reading.angle - previousAngle) / seconds.coerceAtLeast(.001f)
+            filteredVelocity = filteredVelocity * .55f + instantaneous.coerceAtMost(1_800f) * .45f
+        } else {
+            filteredVelocity = 0f
+        }
+        lastSensorAngle = reading.angle
+        lastSensorTimestampNanos = event.timestamp
         fallbackAnimation?.cancel()
         if (reading.direct) {
             publishMotion(reading, reading.target)
@@ -187,6 +205,7 @@ object FLabCore : SensorEventListener, DisplayManager.DisplayListener,
 
     private fun publishMotion(reading: MotionReading, progress: Float) {
         update { it.copy(foldPosture = reading.posture, hingeAngle = reading.angle,
+            hingeVelocityDegPerSecond = filteredVelocity,
             foldProgress = progress.coerceIn(0f, 1f), sensorMode = reading.mode,
             lastEvent = if (reading.mode == SensorMode.CONTINUOUS) "Continuous hinge sample" else "Posture fallback") }
     }

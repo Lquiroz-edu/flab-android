@@ -57,6 +57,7 @@ class PageView(context: Context) : View(context), FLabCore.Listener {
     }
     override fun onState(state: FLabState) {
         if (!respondToFold || !state.enabled || animation?.isRunning == true) return
+        renderer.velocityDegPerSecond = state.hingeVelocityDegPerSecond
         if (kotlin.math.abs(progress - state.foldProgress) < .001f) return
         progress = state.foldProgress
         physicalMotion = true

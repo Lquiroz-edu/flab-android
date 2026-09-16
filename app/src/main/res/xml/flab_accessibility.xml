@@ -5,7 +5,7 @@
     android:notificationTimeout="120"
     android:canRetrieveWindowContent="false"
     android:canPerformGestures="false"
-    android:canTakeScreenshot="false"
+    android:canTakeScreenshot="true"
     android:isAccessibilityTool="false"
     android:description="@string/access_description"
     android:summary="@string/access_summary"

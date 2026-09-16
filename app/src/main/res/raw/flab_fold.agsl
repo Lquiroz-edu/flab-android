@@ -1,0 +1,60 @@
+// F/LAB Fold Material v2.
+// Physical ray/glass model adapted from marcoazeem/duo-open (MIT, 2026),
+// itself inspired by Atomicx7/Duo-animation. See docs/THIRD_PARTY_NOTICES.md.
+
+uniform shader content;
+uniform float2 resolution;
+uniform float tiltDegrees;
+uniform float eyeDistancePx;
+uniform float hingePos;
+uniform float eyePos;
+uniform float axisSwap;
+uniform float paneMode;     // 0 = both inner leaves, 1 = cover leaf from left edge
+uniform float blurSpread;
+uniform float darkening;
+uniform float motionEnergy;
+
+const float GOLDEN_ANGLE = 2.39996322972865332;
+const float TWO_PI = 6.28318530717958648;
+
+half4 main(float2 fragCoord) {
+    if (resolution.x <= 1.0 || resolution.y <= 1.0) return content.eval(fragCoord);
+    float tilt = radians(clamp(tiltDegrees, 0.0, 48.0));
+    if (tilt < 0.0001) return content.eval(fragCoord);
+
+    float2 p = mix(fragCoord, fragCoord.yx, axisSwap);
+    float2 size = mix(resolution, resolution.yx, axisSwap);
+    float side = mix(-1.0, 1.0, step(hingePos, p.x));
+    side = mix(side, 1.0, paneMode);
+    float d = abs(p.x - hingePos);
+    float2 glass = float2(hingePos + side * d * cos(tilt), p.y);
+    float gap = d * sin(tilt);
+    float2 eye = float2(eyePos, size.y * 0.5);
+    float depth = max(eyeDistancePx - gap, 1.0);
+    float2 hitS = eye + (glass - eye) * (eyeDistancePx / depth);
+    float2 hit = clamp(mix(hitS, hitS.yx, axisSwap), float2(0.0), resolution - float2(1.0));
+
+    // CLAMP input prevents black seams and flashes when the optical ray lands
+    // outside the source. No crease, divider or hinge mask is drawn.
+    float radius = blurSpread * gap;
+    float attenuation = max(1.0 - darkening * radius, 0.34);
+    if (radius < 0.45) return half4(content.eval(hit).rgb * half(attenuation), 1.0);
+
+    float tapsF = clamp(6.0 + radius * 0.22 + motionEnergy * 4.0, 6.0, 16.0);
+    float rotation = fract(sin(dot(fragCoord, float2(12.9898, 78.233))) * 43758.5453) * TWO_PI;
+    half3 sum = half3(0.0);
+    float weights = 0.0;
+    for (int i = 0; i < 16; i++) {
+        float fi = float(i);
+        float enabled = 1.0 - step(tapsF, fi);
+        float r = radius * sqrt((fi + 0.5) / tapsF);
+        float a = fi * GOLDEN_ANGLE + rotation;
+        float2 sampleAt = clamp(hit + r * float2(cos(a), sin(a)), float2(0.0), resolution - float2(1.0));
+        sum += content.eval(sampleAt).rgb * half(enabled);
+        weights += enabled;
+    }
+    half3 color = sum / half(max(weights, 1.0));
+    // Tiny lift avoids the muddy grey veil common to naive Gaussian overlays.
+    color = mix(color, color * color * half(0.12) + color * half(0.94), half(0.18));
+    return half4(color * half(attenuation), 1.0);
+}

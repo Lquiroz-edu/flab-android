@@ -24,7 +24,7 @@ class FoldWallpaper : WallpaperService() {
             settings()
         }
         private fun settings() {
-            renderer.blur=prefs.getFloat("blur",.45f)
+            renderer.blur=prefs.getFloat("blur",.58f)
             renderer.radius=prefs.getFloat("radius",.045f)
             renderer.dark=prefs.getBoolean("dark",false)
         }
@@ -59,6 +59,7 @@ class FoldWallpaper : WallpaperService() {
         }
         override fun onState(state: FLabState) {
             if (!state.enabled || !prefs.getBoolean("enabled",true)) return
+            renderer.velocityDegPerSecond=state.hingeVelocityDegPerSecond
             moving=kotlin.math.abs(progress-state.foldProgress)>.001f
             progress=state.foldProgress
             draw()
