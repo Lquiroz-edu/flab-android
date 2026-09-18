@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -74,6 +75,7 @@ fun FLabApp(viewModel: FLabViewModel, onShare: (String) -> Unit) {
         evidence = viewModel.evidence,
         tuning = ui.profile.motion,
         enabled = ui.configuration.enabled,
+        onSettled = viewModel::onMotionSettled,
         modifier = Modifier.fillMaxSize(),
     ) {
         BoxWithConstraints(
@@ -165,10 +167,15 @@ private fun ScreenContent(
                     onToggle = viewModel::setExperimentsEnabled,
                 )
 
-                FLabScreen.Access -> AccessScreen(requirements = viewModel.accessRequirements())
+                FLabScreen.Access -> AccessScreen(
+                    requirements = remember(ui) { viewModel.accessRequirements() },
+                )
 
                 FLabScreen.Diagnostics -> DiagnosticsScreen(
-                    snapshot = viewModel.diagnostics(),
+                    // Keyed on ui so the snapshot follows the engine rather than freezing at the
+                    // first composition. A Diagnostics screen showing a stale copy of the truth is
+                    // worse than none.
+                    snapshot = remember(ui) { viewModel.diagnostics() },
                     report = viewModel::debugReport,
                     onShare = onShare,
                     onClearModuleFailure = viewModel::clearModuleFailure,

@@ -116,8 +116,17 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun back() {
-        _screen.value = if (_screen.value == FLabScreen.Home) FLabScreen.Home else FLabScreen.Home
+        _screen.value = FLabScreen.Home
     }
+
+    /**
+     * Called by the renderer when Fold Motion has settled.
+     *
+     * This is what actually releases the hinge-angle listener. Without it the sensor stays
+     * registered for the rest of the process after the first posture change, which would quietly
+     * make the "no continuous polling" property (DoD 22) untrue.
+     */
+    fun onMotionSettled() = core.stopHingeTracking()
 
     // ------------------------------------------------------------------ actions
 

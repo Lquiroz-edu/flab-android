@@ -99,3 +99,48 @@ class SafeAppsTest {
         assertTrue(camera.locked)
     }
 }
+
+/** Regression cover for the resolver itself, not just the policy gate above it. */
+class ProtectedAppResolutionTest {
+
+    @Test
+    fun `a stored override cannot unlock a protected app`() {
+        // Regression: overrides were consulted before the safe-app check, so a stored preference
+        // for a bank resolved to an unlocked profile. ImmersivePolicy refused it anyway, but the
+        // resolver's answer has to be the same wherever it is asked.
+        val override = AppProfile(
+            packageName = "com.mybank.android",
+            displayName = "My Bank",
+            immersive = TreatmentMode.On,
+            continuity = TreatmentMode.On,
+        )
+
+        val resolved = DefaultAppProfiles.forPackage("com.mybank.android", listOf(override))
+
+        assertTrue("the override must not unlock it", resolved.locked)
+        assertEquals(TreatmentMode.Off, resolved.immersive)
+        assertEquals(TreatmentMode.Off, resolved.continuity)
+    }
+
+    @Test
+    fun `a protected app keeps its readable name`() {
+        val camera = DefaultAppProfiles.forPackage(DefaultAppProfiles.SAMSUNG_CAMERA)
+
+        assertEquals("Camera", camera.displayName)
+        assertTrue(camera.locked)
+    }
+
+    @Test
+    fun `an override is honoured for an app that is not protected`() {
+        val override = AppProfile(
+            packageName = DefaultAppProfiles.INSTAGRAM,
+            displayName = "Instagram",
+            immersive = TreatmentMode.Off,
+            continuity = TreatmentMode.Off,
+        )
+
+        val resolved = DefaultAppProfiles.forPackage(DefaultAppProfiles.INSTAGRAM, listOf(override))
+
+        assertEquals(TreatmentMode.Off, resolved.immersive)
+    }
+}

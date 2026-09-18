@@ -123,14 +123,26 @@ object DefaultAppProfiles {
     /**
      * The profile for [packageName], falling back to a conservative default.
      *
-     * An app nobody has configured gets Continuity on Auto and Immersive off. Continuity is
-     * safe everywhere because it only ever shortens a transition F/LAB is already showing;
-     * Immersive changes how another app looks, so it stays opt-in.
+     * The safe-app check runs **before** the user's overrides, not after. A stored override for a
+     * bank must not come back unlocked: `ImmersivePolicy` would refuse it anyway, but a resolver
+     * that hands out an unlocked profile for a protected app is one refactor away from being the
+     * thing that decides, and the answer should be the same wherever it is asked.
+     *
+     * An app nobody has configured gets Continuity on Auto and Immersive off. Continuity is safe
+     * everywhere because it only ever shortens a transition F/LAB is already showing; Immersive
+     * changes how an app looks, so it stays opt-in.
      */
     fun forPackage(packageName: String, overrides: List<AppProfile> = emptyList()): AppProfile {
+        val seed = seeded.firstOrNull { it.packageName == packageName }
+        if (SafeApps.isProtected(packageName)) {
+            val locked = SafeApps.lockedProfile(packageName)
+            return locked.copy(
+                displayName = seed?.displayName ?: locked.displayName,
+                note = seed?.note ?: locked.note,
+            )
+        }
         overrides.firstOrNull { it.packageName == packageName }?.let { return it }
-        if (SafeApps.isProtected(packageName)) return SafeApps.lockedProfile(packageName)
-        seeded.firstOrNull { it.packageName == packageName }?.let { return it }
+        seed?.let { return it }
         return AppProfile(
             packageName = packageName,
             displayName = packageName,

@@ -9,6 +9,7 @@ import android.os.Build
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 
 /**
  * Reads `Sensor.TYPE_HINGE_ANGLE`, the one genuinely continuous fold signal a normal app gets.
@@ -46,6 +47,9 @@ class HingeAngleSource(private val context: Context) {
      *
      * Uses `SENSOR_DELAY_GAME` rather than `FASTEST`: at 120 Hz the extra samples from FASTEST do
      * not survive into a frame, and they cost power for nothing (DoD 25).
+     *
+     * Conflated, because this is a position: if the consumer is busy, the newest angle is the only
+     * one worth having, and a queue that backs up would make the motion lag the hand.
      */
     fun angles(): Flow<Float> = callbackFlow {
         val manager = sensorManager
@@ -63,7 +67,7 @@ class HingeAngleSource(private val context: Context) {
         }
         manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_GAME)
         awaitClose { manager.unregisterListener(listener) }
-    }
+    }.conflate()
 
     /** Normalises a hinge angle to the `0f..1f` progress the motion engine speaks. */
     fun normalise(angleDegrees: Float): Float =

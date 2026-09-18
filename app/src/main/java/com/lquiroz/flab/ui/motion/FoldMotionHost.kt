@@ -21,7 +21,10 @@ import com.lquiroz.flab.motion.FoldEvidence
 import com.lquiroz.flab.motion.FoldMotionEngine
 import com.lquiroz.flab.motion.MotionChannels
 import com.lquiroz.flab.motion.MotionTuning
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 /**
  * Runs the Fold Motion frame loop and applies the result to [content].
@@ -62,14 +65,26 @@ fun FoldMotionHost(
             channels = MotionChannels.Neutral
             return@LaunchedEffect
         }
-        evidence.collect { observation ->
-            engine.submit(observation)
-            // Drive frames only while there is something to draw, then hand the CPU back.
-            while (engine.needsFrames) {
-                withFrameNanos { nanos -> channels = engine.advance(nanos) }
+        coroutineScope {
+            // Collection and the frame loop are separate coroutines on purpose. Collecting inside
+            // the loop would mean no sample could reach the engine until it had already settled,
+            // so a real fold — which produces samples continuously while the engine is animating —
+            // would be tracked as a series of stale jumps instead of as movement.
+            val wake = Channel<Unit>(Channel.CONFLATED)
+            launch {
+                evidence.collect { observation ->
+                    engine.submit(observation)
+                    wake.trySend(Unit)
+                }
             }
-            channels = engine.channels
-            onSettled()
+            for (signal in wake) {
+                // Drive frames only while there is something to draw, then hand the CPU back.
+                while (engine.needsFrames) {
+                    withFrameNanos { nanos -> channels = engine.advance(nanos) }
+                }
+                channels = engine.channels
+                onSettled()
+            }
         }
     }
 

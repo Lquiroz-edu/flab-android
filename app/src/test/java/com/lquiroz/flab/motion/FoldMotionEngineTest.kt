@@ -19,6 +19,47 @@ class FoldMotionEngineTest {
     }
 
     @Test
+    fun `fresh evidence immediately asks for a frame`() {
+        // Regression: needsFrames was derived from the last frame alone, and a settled frame
+        // reports settled = true. New evidence therefore arrived, found needsFrames false, and the
+        // engine never animated at all.
+        val engine = FoldMotionEngine(MotionTuning.Balanced)
+        assertFalse(engine.needsFrames)
+
+        engine.submit(FoldEvidence(1f, EvidenceSource.HingeAngle, 0L))
+
+        assertTrue("evidence must be able to start the loop", engine.needsFrames)
+    }
+
+    @Test
+    fun `evidence arriving mid-flight is picked up without waiting to settle`() {
+        // Regression: evidence was collected inside the frame loop, so nothing could reach the
+        // engine until it settled. During a real fold, samples arrive continuously while the
+        // engine is already animating, and they have to redirect it in flight.
+        val engine = FoldMotionEngine(MotionTuning.Balanced)
+        engine.submit(FoldEvidence(1f, EvidenceSource.HingeAngle, 0L))
+
+        var now = 0L
+        engine.advance(now)
+        repeat(3) {
+            now += frameNanos
+            engine.advance(now)
+        }
+        val headingOpen = engine.frame.progress
+
+        // The user reverses direction while the engine is still travelling.
+        engine.submit(FoldEvidence(0f, EvidenceSource.HingeAngle, now))
+        var guard = 0
+        while (engine.needsFrames && guard++ < 1_000) {
+            now += frameNanos
+            engine.advance(now)
+        }
+
+        assertTrue("should have been moving", headingOpen > 0f)
+        assertEquals("must follow the new evidence, not the old target", 0f, engine.frame.progress, 0.01f)
+    }
+
+    @Test
     fun `evidence starts the loop and settling stops it`() {
         val engine = FoldMotionEngine(MotionTuning.Balanced)
         engine.submit(FoldEvidence(1f, EvidenceSource.HingeAngle, 0L))
