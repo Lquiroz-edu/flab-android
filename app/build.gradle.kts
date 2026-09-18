@@ -39,6 +39,15 @@ android {
         buildConfig = true
     }
 
+    lint {
+        // Lint suggests merging mipmap-anydpi-v26 into mipmap-anydpi because minSdk is already 26.
+        // Taking that advice makes AAPT fail to resolve the launcher icons at all, so the advice is
+        // wrong for this project and the folder stays where the toolchain expects it.
+        disable += "ObsoleteSdkInt"
+        warningsAsErrors = false
+        abortOnError = true
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -49,12 +58,14 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.window)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

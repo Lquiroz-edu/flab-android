@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    F/LAB's configuration is a set of decisions about this device: which display is the cover one,
+    which apps get which treatment, which modules the circuit breaker has taken out. None of that
+    is meaningful on another device, so nothing is backed up or transferred.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="flab_settings.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="flab_settings.xml" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,22 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        Boot persistence (DoD 19): F/LAB must come back the way it was left without being reopened.
+
+        Note what is absent. There is no SYSTEM_ALERT_WINDOW, no accessibility service, no
+        QUERY_ALL_PACKAGES and no foreground service type. The four v1 modules run entirely within
+        the normal app sandbox, and anything that would need more lives in F/LAB Experiments
+        (DoD 15, 16, 17).
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Fold Motion follows the hinge where there is one, and degrades gracefully where there is not. -->
+    <uses-feature
+        android:name="android.hardware.sensor.hinge_angle"
+        android:required="false" />
+
     <application
-        android:allowBackup="true"
+        android:name=".FLabApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="F/LAB"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FLab">
+
         <activity
             android:name=".MainActivity"
-            android:configChanges="keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-            android:exported="true">
+            android:configChanges="keyboardHidden|keyboard|orientation|screenLayout|screenSize|smallestScreenSize|density|uiMode|navigation"
+            android:exported="true"
+            android:resizeableActivity="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

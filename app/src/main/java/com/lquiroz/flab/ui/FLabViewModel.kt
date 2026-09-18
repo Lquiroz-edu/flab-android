@@ -1,0 +1,316 @@
+package com.lquiroz.flab.ui
+
+import android.app.Application
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.lquiroz.flab.FLabApplication
+import com.lquiroz.flab.compat.CompatibilityRegistry
+import com.lquiroz.flab.compat.ConfigResolver
+import com.lquiroz.flab.core.Experiments
+import com.lquiroz.flab.core.FLabState
+import com.lquiroz.flab.core.ModuleId
+import com.lquiroz.flab.diagnostics.AccessRequirement
+import com.lquiroz.flab.diagnostics.DebugReport
+import com.lquiroz.flab.diagnostics.DeviceReport
+import com.lquiroz.flab.diagnostics.DiagnosticsSnapshot
+import com.lquiroz.flab.diagnostics.ModuleError
+import com.lquiroz.flab.profiles.AppProfile
+import com.lquiroz.flab.profiles.DefaultAppProfiles
+import com.lquiroz.flab.profiles.FLabProfile
+import com.lquiroz.flab.profiles.ProfileId
+import com.lquiroz.flab.profiles.TreatmentMode
+import com.lquiroz.flab.settings.FLabConfiguration
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+
+/** The screens F/LAB has. Flat on purpose: this is a control panel, not a hierarchy. */
+enum class FLabScreen(val title: String) {
+    Onboarding("Welcome"),
+    Home("F/LAB"),
+    FoldMotion("Fold Motion"),
+    Apps("Apps"),
+    Profiles("Profiles"),
+    Experiments("F/LAB Experiments"),
+    Access("F/LAB Access"),
+    Diagnostics("F/LAB Diagnostics"),
+}
+
+/** Everything a screen needs, assembled once. */
+data class FLabUiState(
+    val state: FLabState = FLabState(),
+    val configuration: FLabConfiguration = FLabConfiguration(),
+    val profile: FLabProfile = FLabProfile.Balanced,
+    val appProfiles: List<AppProfile> = DefaultAppProfiles.seeded,
+    val device: DeviceReport? = null,
+) {
+    val configuredAppCount: Int get() = appProfiles.count { !it.isDisabled }
+
+    /** The Home health line from DoD 43. */
+    val healthLine: String
+        get() = when {
+            !configuration.enabled -> "F/LAB is off"
+            state.moduleStates.values.any { it.disabledByBreaker } -> "Action required"
+            state.activeModules.isEmpty() -> "No modules running"
+            else -> "F/LAB Active"
+        }
+
+    val needsAttention: Boolean
+        get() = configuration.enabled && state.moduleStates.values.any { it.disabledByBreaker }
+}
+
+/**
+ * Bridges the Core to Compose.
+ *
+ * Holds no engine state of its own: every value here is derived from [FLabCore.state] and the
+ * settings store, so the UI cannot drift from what the engine actually believes. That matters for
+ * DoD 37 — a Diagnostics screen that shows a cached copy of the truth is worse than no Diagnostics
+ * screen at all.
+ */
+class FLabViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val app = application as FLabApplication
+    private val core = app.core
+    private val settings = app.settings
+
+    private val _screen = MutableStateFlow(FLabScreen.Home)
+    val screen: StateFlow<FLabScreen> = _screen.asStateFlow()
+
+    private val _previewProgress = MutableStateFlow(0f)
+
+    /** The Live Preview scrubber position (DoD 11). Never touches the running configuration. */
+    val previewProgress: StateFlow<Float> = _previewProgress.asStateFlow()
+
+    private val resolvedConfig = ConfigResolver().resolve()
+
+    val registry: CompatibilityRegistry get() = resolvedConfig.registry
+
+    val uiState: StateFlow<FLabUiState> = combine(
+        core.state,
+        settings.observe(),
+    ) { state, configuration ->
+        FLabUiState(
+            state = state,
+            configuration = configuration,
+            profile = FLabProfile.of(configuration.profileId),
+            appProfiles = mergedAppProfiles(configuration),
+            device = deviceReport(),
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = FLabUiState(device = deviceReport()),
+    )
+
+    val evidence = core.evidence
+
+    // ------------------------------------------------------------------ navigation
+
+    fun navigate(screen: FLabScreen) {
+        _screen.value = screen
+    }
+
+    fun back() {
+        _screen.value = if (_screen.value == FLabScreen.Home) FLabScreen.Home else FLabScreen.Home
+    }
+
+    // ------------------------------------------------------------------ actions
+
+    fun setEnabled(enabled: Boolean) = if (enabled) core.enable() else core.disable()
+
+    fun setProfile(id: ProfileId) = core.setProfile(id)
+
+    fun setModuleEnabled(module: ModuleId, enabled: Boolean) =
+        core.setModuleEnabled(module, enabled)
+
+    fun clearModuleFailure(module: ModuleId) = core.clearModuleFailure(module)
+
+    fun setExperimentsEnabled(enabled: Boolean) = settings.setExperimentsEnabled(enabled)
+
+    fun completeOnboarding() {
+        settings.setOnboardingComplete(true)
+        _screen.value = FLabScreen.Home
+    }
+
+    fun scrubPreview(progress: Float) {
+        _previewProgress.value = progress.coerceIn(0f, 1f)
+    }
+
+    /**
+     * Cycles an app's immersive treatment (DoD 13).
+     *
+     * A protected app is a no-op rather than a silently-stored preference that the policy would
+     * later refuse: the switch should not move if the answer is always going to be no.
+     */
+    fun cycleImmersive(profile: AppProfile) {
+        if (profile.locked) return
+        val next = when (profile.immersive) {
+            TreatmentMode.Off -> TreatmentMode.Auto
+            TreatmentMode.Auto -> TreatmentMode.On
+            TreatmentMode.On -> TreatmentMode.Off
+        }
+        settings.setAppOverride(profile.copy(immersive = next))
+    }
+
+    fun cycleContinuity(profile: AppProfile) {
+        if (profile.locked) return
+        val next = when (profile.continuity) {
+            TreatmentMode.Off -> TreatmentMode.Auto
+            TreatmentMode.Auto -> TreatmentMode.On
+            TreatmentMode.On -> TreatmentMode.Off
+        }
+        settings.setAppOverride(profile.copy(continuity = next))
+    }
+
+    /** Reset F/LAB (DoD 21). */
+    fun reset() {
+        core.reset()
+        _screen.value = FLabScreen.Home
+    }
+
+    // ------------------------------------------------------------------ diagnostics
+
+    fun diagnostics(): DiagnosticsSnapshot {
+        val state = core.state.value
+        val lastError = state.moduleStates.entries
+            .mapNotNull { (id, runtime) ->
+                val message = runtime.lastErrorMessage ?: return@mapNotNull null
+                val at = runtime.lastErrorAtMillis ?: return@mapNotNull null
+                ModuleError(id, message, at)
+            }
+            .maxByOrNull { it.atMillis }
+
+        return DiagnosticsSnapshot(
+            device = deviceReport(),
+            state = state,
+            access = accessRequirements(),
+            lastError = lastError,
+            compatibilityRuleCount = registry.size,
+            capturedAtMillis = System.currentTimeMillis(),
+        )
+    }
+
+    fun debugReport(): String = DebugReport.build(
+        snapshot = diagnostics(),
+        configuredPackages = uiState.value.appProfiles
+            .filterNot { it.isDisabled }
+            .map { it.packageName },
+    )
+
+    /**
+     * What F/LAB can ask for, and what it loses without each (DoD 17).
+     *
+     * The list is short because F/LAB's stable modules need nothing beyond the normal sandbox.
+     * Everything that would need more is an experiment, and says so.
+     */
+    fun accessRequirements(): List<AccessRequirement> = buildList {
+        add(
+            AccessRequirement(
+                title = "Hinge sensor",
+                why = "Reads the hinge angle so opening motion follows the device rather than " +
+                    "replaying a fixed animation.",
+                whatBreaks = "Fold Motion falls back to coarse posture events. It still works, " +
+                    "but it is less closely attached to the movement.",
+                granted = core.isHingeSensorAvailable,
+            ),
+        )
+        add(
+            AccessRequirement(
+                title = "Notifications",
+                why = "Tells you when a module switches itself off after repeated failures.",
+                whatBreaks = "A module can switch off without you noticing. Diagnostics still " +
+                    "records it.",
+                granted = notificationsGranted(),
+            ),
+        )
+        Experiments.accessibilityDependent.forEach { experiment ->
+            add(
+                AccessRequirement(
+                    title = experiment.title,
+                    why = experiment.accessRationale ?: experiment.description,
+                    whatBreaks = "Per-app treatment applies only inside F/LAB's own surfaces.",
+                    granted = false,
+                    experimental = true,
+                ),
+            )
+        }
+    }
+
+    // ------------------------------------------------------------------ internals
+
+    private fun mergedAppProfiles(configuration: FLabConfiguration): List<AppProfile> {
+        val overridden = configuration.appOverrides.associateBy { it.packageName }
+        val seeded = DefaultAppProfiles.seeded.map { seed ->
+            overridden[seed.packageName]?.copy(
+                displayName = seed.displayName,
+                locked = seed.locked,
+                note = seed.note,
+            ) ?: seed
+        }
+        val extra = configuration.appOverrides.filterNot { override ->
+            DefaultAppProfiles.seeded.any { it.packageName == override.packageName }
+        }
+        return (seeded + extra).sortedWith(
+            compareBy({ it.locked }, { it.displayName.lowercase() }),
+        )
+    }
+
+    private fun deviceReport(): DeviceReport {
+        val context = getApplication<Application>()
+        val versionName = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull() ?: "unknown"
+
+        return DeviceReport(
+            manufacturer = Build.MANUFACTURER,
+            model = Build.MODEL,
+            androidRelease = Build.VERSION.RELEASE,
+            sdkInt = Build.VERSION.SDK_INT,
+            oneUiVersion = oneUiVersion(),
+            appVersionName = versionName,
+            hasHingeSensor = core.isHingeSensorAvailable,
+            isFoldable = core.state.value.fold.isFoldable || core.isHingeSensorAvailable,
+        )
+    }
+
+    /**
+     * Identifies One UI, for the Diagnostics line DoD 37 asks for.
+     *
+     * The exact One UI version number is not available to a normal app. It lives in
+     * `ro.build.version.oneui`, and `android.os.SystemProperties` has been on Android's
+     * non-SDK denylist since Android 9 — reflecting into it returns null on every device this app
+     * targets while looking like it might work, which is the worst of both outcomes.
+     *
+     * So this reports what a public API can actually establish: whether the device runs One UI at
+     * all, via Samsung's own system feature. A build number is included because it is the closest
+     * public proxy and it is genuinely useful in a bug report. Nothing branches on either value.
+     */
+    private fun oneUiVersion(): String? {
+        val packageManager = getApplication<Application>().packageManager
+        val isOneUi = SAMSUNG_EXPERIENCE_FEATURES.any(packageManager::hasSystemFeature)
+        if (!isOneUi) return null
+        return "One UI (build ${Build.DISPLAY})"
+    }
+
+    private fun notificationsGranted(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return true
+        val context = getApplication<Application>()
+        return context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        /** Samsung declares one of these on every One UI build. */
+        val SAMSUNG_EXPERIENCE_FEATURES = listOf(
+            "com.samsung.feature.samsung_experience_mobile",
+            "com.samsung.feature.samsung_experience_mobile_lite",
+        )
+    }
+}

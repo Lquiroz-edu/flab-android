@@ -1,0 +1,326 @@
+# F/LAB v1.0 — Definition of Done tracker
+
+This file tracks the 50-point Definition of Done against what is actually in the repository, and
+against what Android permits a normal, unrooted, third-party app to do.
+
+Status vocabulary:
+
+| Status | Meaning |
+| --- | --- |
+| **Done** | Implemented and covered by tests or directly verifiable in the app. |
+| **Structured** | The architecture, data model and policy exist and are tested. The behaviour is not yet wired to a real device surface. |
+| **Pending** | Not started. |
+| **Device-gated** | Cannot be signed off from source. Needs a Galaxy Z Fold and a measurement. |
+| **Bounded by Android** | The stated goal is not reachable in full for a normal app. The section below says what *is* reachable and what is not. |
+
+---
+
+## The honest constraint, stated once
+
+Several sections of the DoD ask F/LAB to change how **other apps** look — to extend Instagram's
+Reels into the status bar area, to blend YouTube's system bars, to hide another app's relayout
+during an unfold.
+
+A normal Android app cannot do any of that. Specifically, it cannot:
+
+- set another app's status bar or navigation bar colour, or its icon polarity;
+- draw behind or into another app's window;
+- read another app's window contents to sample a colour;
+- take part in another app's configuration change, Activity recreation or relaunch;
+- alter One UI's own transitions.
+
+What *is* reachable, and what the code in this repository is built around:
+
+1. **F/LAB's own surfaces** get the full treatment. Everything in `motion/`, `continuity/` and
+   `immersive/` runs on F/LAB's own window today.
+2. **An overlay** (`SYSTEM_ALERT_WINDOW`) can draw *above* another app. It cannot restyle it, it
+   cannot be trusted over sensitive surfaces, and it is a tapjacking surface if it is interactive.
+   F/LAB does not request it in v1.
+3. **An accessibility service** can observe which app and roughly which screen is in front. That is
+   what the App Profiles and Immersive Detection modules would need to act outside F/LAB. It is
+   parked in F/LAB Experiments, off by default, with a stated rationale.
+
+The decision taken here is the one DoD 48 asks for: build the policy, the rule table and the safety
+gates first and completely, so that when a surface does become available the answer to "should
+F/LAB act here?" is already written and already tested. Nothing ships that pretends to a capability
+it does not have.
+
+`docs/CAPABILITIES.md` holds the full capability boundary.
+
+---
+
+## Section-by-section
+
+### 1. Product objective — **Structured**
+No root, no One UI replacement, no permanent service, no accessibility requirement for any stable
+module. `AndroidManifest.xml` requests only `RECEIVE_BOOT_COMPLETED` and `POST_NOTIFICATIONS`.
+"Improvements visible outside F/LAB's own UI" is **Bounded by Android** — see above.
+
+### 2. F/LAB Core — **Done**
+`core/FLabCore.kt` owns a single `FLabState` (`core/FLabState.kt`): posture, continuous progress,
+hinge angle, orientation, window size, active display, presentation mode, foreground package,
+engine status, module states, profile and power posture. No module detects the fold independently.
+The Core lives on the Application, not an Activity, so a
+`closed → part open → open → part closed → closed` cycle cannot lose it.
+Tested in `FLabStateTest`.
+
+### 3. Fold Motion Engine — **Done** (inside F/LAB), **Bounded by Android** (elsewhere)
+`motion/PerceptualInterpolator.kt` interpolates towards physical evidence and never plays a
+free-running animation. `Sensor.TYPE_HINGE_ANGLE` gives genuinely continuous input where the device
+has it; posture events are the coarse fallback. Controls scale, blur, opacity, depth, offset,
+easing, spring, dimming and expansion — `motion/MotionChannels.kt`.
+
+The two properties the DoD singles out are asserted in `PerceptualInterpolatorTest`:
+stopping the device stops the motion, and a `HALF_OPENED` event targets 0.5 rather than triggering
+a 0→1 animation.
+
+The prohibitions — no seam, fake fold, line, mask, curtain or joint-revealing overlay — are
+structural: there is no such channel in `MotionChannels`, and `MotionChannelsTest` asserts the
+ceilings that prevent a black flash or an abrupt scale change.
+
+### 4. Continuity Engine — **Structured**
+`continuity/ContinuityEngine.kt` implements the bridge as a budget rather than a duration:
+`onContentReady` ends the transition early, and the budget is a hard stop so a layer can never
+freeze. `shouldBridge` refuses to cover a change too small to have been noticed.
+Detecting *another app's* recreation, relayout or relaunch is **Bounded by Android**.
+Tested in `ContinuityEngineTest`, including a 50-cycle stress loop.
+
+### 5. Immersive Layer — **Structured**
+Strategies are modelled in `compat/CompatibilityRule.kt`: chromatic continuity, edge-to-edge,
+gradient extension and the full immersive extension. They run on F/LAB's own window.
+Applying them to Instagram is **Bounded by Android**.
+
+### 6. App Immersion Profiles — **Done**
+`profiles/AppProfile.kt` seeds Instagram, YouTube, TikTok, Chrome, Camera, Maps, One UI Home,
+Gallery and WhatsApp with the treatment each section describes. Camera is locked outright.
+
+### 7. Immersive Detection — **Done** (as policy)
+`immersive/ImmersiveContext.kt` makes the context — not the package — the unit of decision, and
+carries a confidence with every estimate. `ImmersivePolicy` abstains below 0.7 confidence and on
+`Unknown` at any confidence. Producing the estimate for a third-party app is **Bounded by Android**.
+The full decision table is tested in `ImmersivePolicyTest`.
+
+### 8. Status Bar Intelligence — **Done**
+`immersive/StatusBarIntelligence.kt` works in WCAG contrast over a *sampled region* rather than one
+colour, because a flat colour always has a working icon polarity and a video frame does not. Falls
+back to the system whenever contrast cannot be guaranteed. `StatusBarIntelligenceTest` sweeps every
+grey and every grey pair and asserts there is no third outcome between "legible" and "fall back".
+
+### 9. Navigation Bar Integration — **Structured**
+Same strategy set and same fallback. Gesture-versus-button conservatism is not yet implemented.
+
+### 10. F/LAB App — **Done**
+`ui/screens/HomeScreen.kt` matches the sketched layout: device, the four modules, apps,
+performance, experiments — each a state with a health dot, not a settings row.
+
+### 11. Live Preview — **Done**
+`ui/screens/FoldMotionScreen.kt`. The scrubber feeds the same `MotionChannelMapper` at the same
+tuning as the live engine, so stopping mid-drag demonstrates the DoD 3 property directly. Preview
+state never touches the running configuration.
+
+### 12. Profiles — **Done**
+Balanced, Smooth, Minimal, Battery and Custom in `profiles/FLabProfile.kt`, each a complete
+`MotionTuning`. Battery is inert by construction and short-circuits the renderer.
+
+### 13. App Control — **Done**
+`ui/screens/AppsScreen.kt` with per-app Immersive and Continuity cycling. Protected apps are shown
+locked with the reason, rather than hidden.
+
+### 14. Safe Apps — **Done**
+`profiles/SafeApps.kt` covers banking, authenticators, password managers, the lock screen,
+permission surfaces, payments, the camera, package installation and system UI. Detection is blunt
+and errs towards protecting. `ImmersivePolicy` refuses a protected app even when the user has
+explicitly enabled it. Tested in `SafeAppsTest` and `ImmersivePolicyTest`.
+
+### 15. F/LAB Experiments — **Done**
+`core/Experiments.kt` and `ui/screens/ExperimentsScreen.kt`. Everything is off by default and
+states its risk above the switch.
+
+### 16. Accessibility — **Done**
+No stable module requires it. Only the two experiments that genuinely need it declare it, each with
+a rationale stating what is read and what is not.
+
+### 17. Permissions — **Done**
+`ui/screens/AccessScreen.kt` answers the same three questions for every capability: what it is,
+what F/LAB does with it, what stops working without it.
+
+### 18. Zero-Touch Operation — **Structured**
+No daily interaction is required. Configuration is persisted and the engine is event-driven.
+
+### 19. Boot Persistence — **Done**
+`BootReceiver.kt` plus `settings/FLabSettings.kt`. Deliberately does *not* start a service at boot:
+a permanent service would cost battery all day for no visible gain (DoD 25).
+
+### 20. Crash Safety — **Done**
+`core/ModuleCircuitBreaker.kt` takes a module out after three failures in a minute, keeps the
+user's own preference intact, and forgets failures outside the window. A `SupervisorJob` keeps one
+module's coroutine failure from cancelling the others. Tested in `ModuleCircuitBreakerTest`.
+
+### 21. Kill Switch — **Done**
+`FLabCore.disable()` from the Home pill, `FLabCore.reset()` from Diagnostics behind a confirmation.
+
+### 22. Performance — **Done** (by construction), **Device-gated** (by measurement)
+No polling, no timers, no wake locks anywhere in the codebase. The hinge listener is registered only
+while a transition is in flight. `FoldMotionHost` runs `while (engine.needsFrames)`, not
+`while (true)`, so a still device schedules no frames. A neutral frame takes a fast path with no
+graphics layer, no blur pass and no scrim.
+
+### 23. Frame Rate — **Device-gated**
+The loop is driven by `withFrameNanos`, so it samples at the panel's refresh rate without knowing
+it. Real 120 Hz jank has to be measured.
+
+### 24. Latency — **Device-gated**
+Evidence submission is synchronous and the next frame applies it. Perceived latency needs a device.
+
+### 25. Battery — **Device-gated**
+Needs the four measurement scenarios the DoD lists: idle, normal use, an intensive fold session,
+and vertical video.
+
+### 26. Temperature — **Structured**, **Device-gated**
+`PowerPosture` folds Android's thermal status into the state and stands modules down at
+`THERMAL_STATUS_MODERATE` and above. Sustained heating has to be measured.
+
+### 27. Fold compatibility — **Structured**
+Nothing is hard-coded to one model. The cover/inner inference is a documented guess, labelled as
+one in Diagnostics, and nothing destructive depends on it.
+
+### 28. External app updates — **Done**
+No rule depends on a pixel, a coordinate, a view id or a resource id — asserted in
+`CompatibilityRegistryTest`. A version outside every known range resolves to nothing, and
+`ImmersivePolicy` turns nothing into an abstention. An Instagram update that moves something makes
+F/LAB stop optimising Instagram; it does not make F/LAB improvise.
+
+### 29. Compatibility Rules — **Done**
+`compat/CompatibilityRule.kt` implements `App → version range → context → capability → strategy`
+exactly. Most-specific-first resolution, overrides layer on top without removing the floor.
+
+### 30. No Visual Artifacts — **Structured**, **Device-gated**
+The ones that can be prevented structurally are: no seam or fake fold channel exists; dim and alpha
+are capped so a transition cannot read as a flash; scale travel is bounded; a stale evidence gap
+cannot inject a jump; the continuity budget is a hard stop against a frozen overlay. The rest —
+flicker, duplicated frames, late bars — needs a device.
+
+### 31. Interactions — **Structured**
+F/LAB draws no overlay over other apps in v1, so there is nothing to eat a tap. The click-through
+requirement is recorded for whenever an overlay is introduced.
+
+### 32. System gestures — **Structured**, **Device-gated**
+Nothing intercepts input outside F/LAB's own window.
+
+### 33. Multitasking — **Done**
+`WindowPresentation` distinguishes full screen, split screen, pop-up and PiP, and
+`WindowState.ownsSystemBars` is false for all but full screen. `ImmersivePolicy` abstains with
+`MultiWindow`. Unknown is treated as not-full-screen, so the default is to stand back.
+Tested in `FLabStateTest` and `ImmersivePolicyTest`.
+
+### 34. Orientation change — **Structured**
+`WindowSize` derives its own orientation; the Activity handles the config change in place.
+
+### 35. Lock / Unlock — **Structured**
+The Core detaches on `STOPPED`, so no subscription or listener survives a lock.
+
+### 36. Cover → Inner stress test — **Device-gated**
+`ContinuityEngineTest` runs the state-machine half of it (50 cycles, no accumulated state). The
+real sequence needs a Fold.
+
+### 37. Diagnostics — **Done**
+`ui/screens/DiagnosticsScreen.kt` shows device, One UI, Android, fold state, active display, active
+modules, permissions, service status and last module error. Part of the Core, not switchable.
+
+### 38. Debug Report — **Done**
+`diagnostics/DebugReport.kt`. No installed-app inventory, no identifiers, no screen contents, no
+absolute timestamps. Shown in full before sharing, and shared through the system sheet so F/LAB
+never uploads anything itself. Tested in `DebugReportTest`.
+
+### 39. Remote Config Ready — **Done**
+`compat/RemoteConfigSource.kt`. Rules are data behind a `ConfigSource`; `ConfigResolver` already
+does the version gating and layering a remote source would need. No backend, as the DoD allows.
+
+### 40. F/LAB design — **Done**
+`ui/theme/FLabTheme.kt` defines both light and dark schemes, not a dark palette with a fallback.
+Minimal, high contrast, depth from material, blur used sparingly.
+
+### 41. F/LAB animations — **Done**
+The whole app is wrapped in `FoldMotionHost`, so F/LAB's own screens get the treatment F/LAB is
+arguing for. Every interactive surface responds with a spring rather than a ripple.
+
+### 42. Onboarding — **Done**
+`ui/screens/OnboardingScreen.kt`, five steps in the order the DoD lists, including what Android
+will not allow and how to switch F/LAB off.
+
+### 43. Healthy state — **Done**
+Home shows `F/LAB Active`, `Action required` or the reason a module is off, and offers a route to
+Diagnostics.
+
+### 44. Minimum modules — **Structured**
+All four exist as modules with real policy and real tests. Fold Motion is fully live inside F/LAB;
+the other three are complete as engines and policy, and gated on the surfaces in the constraint
+section above. Diagnostics is part of the Core.
+
+### 45. Minimum validation apps — **Device-gated**
+
+### 46. Instagram acceptance test — **Structured**
+The decision half is done and tested: Reels → immersive extension, Stories → gradient, Feed → no
+change, DM → no change. `ImmersivePolicyTest` covers all four. The visual half needs a device.
+
+### 47. YouTube acceptance test — **Structured**
+Full screen is recognised as already correct and explicitly abstained from with
+`AppAlreadyImmersive`; Shorts is marked not-worth-it on Auto. Tested.
+
+### 48. Intervention principle — **Done**
+`AbstainReason.NoPerceptibleGain` and `CompatibilityRule.worthwhileOnAuto` make "this would not
+improve anything" a first-class answer, recorded like any other decision.
+
+### 49. Technical Definition of Done — see checklist below
+
+### 50. The real test — **Device-gated**
+
+---
+
+## DoD 49 checklist
+
+| Criterion | Status |
+| --- | --- |
+| Installs normally via APK | Done — CI publishes a debug APK |
+| Works without root | Done |
+| Keeps behaviour after a restart | Done |
+| Fold Motion is continuous and convincing | Done in F/LAB; convincing is device-gated |
+| Continuity works cover ↔ inner | Structured |
+| Immersive works in the defined compatible contexts | Structured |
+| Instagram has a working contextual profile | Structured — policy done and tested |
+| YouTube receives no unnecessary intervention | Done — tested |
+| Per-app profiles work | Done |
+| Status and navigation bars stay legible | Done — tested |
+| One UI keeps working normally | Done — F/LAB touches nothing outside its own window |
+| Multitasking keeps working | Done |
+| The gesture system keeps working | Done |
+| No stuck overlays | Done — no overlay exists, and the continuity budget is a hard stop |
+| A service crash does not affect the phone | Done — no permanent service; supervised scopes |
+| Kill switch exists | Done |
+| Diagnostics exists | Done |
+| Battery stays within target | Device-gated |
+| No sustained heating | Device-gated |
+| No habitual perceptible jank | Device-gated |
+| No flashes or artificial bands | Structured — prevented by construction, needs device confirmation |
+| Permissions are explained | Done |
+| Experimental features are separated | Done |
+| Fold/unfold stress test passes | Device-gated |
+| Instagram tests pass | Device-gated |
+| YouTube tests pass | Device-gated |
+| Final F/LAB visual identity | Done |
+| Release build is signed | Pending |
+| An update over a previous version keeps its configuration | Done — stable keys, tolerant reads |
+| Uninstalling returns the device to standard behaviour | Done — F/LAB changes nothing outside its own process |
+
+---
+
+## What to do next, in order
+
+1. **Measure on a device.** Everything marked Device-gated is blocked on a Galaxy Z Fold. Battery,
+   thermals, 120 Hz jank and the fold/unfold stress test are the ones that can still invalidate
+   design decisions, so they should come before more features.
+2. **Decide the overlay question.** Sections 5, 6, 7 and 46 cannot progress past Structured without
+   either an overlay, an accessibility service, or both. That is a product decision about what
+   F/LAB is willing to ask for, not an engineering one, and it should be taken deliberately rather
+   than arrived at.
+3. **Sign the release build.** The last purely mechanical item on the DoD 49 checklist.

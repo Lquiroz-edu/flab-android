@@ -1,0 +1,198 @@
+package com.lquiroz.flab.ui
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lquiroz.flab.ui.components.FLabButton
+import com.lquiroz.flab.ui.motion.FoldMotionHost
+import com.lquiroz.flab.ui.screens.AccessScreen
+import com.lquiroz.flab.ui.screens.AppsScreen
+import com.lquiroz.flab.ui.screens.DiagnosticsScreen
+import com.lquiroz.flab.ui.screens.ExperimentsScreen
+import com.lquiroz.flab.ui.screens.FoldMotionScreen
+import com.lquiroz.flab.ui.screens.HomeScreen
+import com.lquiroz.flab.ui.screens.OnboardingScreen
+import com.lquiroz.flab.ui.screens.ProfilesScreen
+import com.lquiroz.flab.ui.theme.FLabColors
+
+/**
+ * The F/LAB shell.
+ *
+ * Two things worth knowing about this file:
+ *
+ *  1. The whole app is wrapped in [FoldMotionHost], so F/LAB's own screens get the treatment
+ *     F/LAB is arguing for (DoD 41). If the motion is not good enough to use on itself, it is not
+ *     good enough to ship.
+ *  2. Layout adapts at 720 dp rather than the usual 600 dp. A Fold's inner display lands well
+ *     above that, and the cover display well below, so the breakpoint falls in the gap instead of
+ *     near either panel — a window that sits exactly on a breakpoint re-lays-out on every small
+ *     resize during an unfold, which is the "contenido desplazado accidentalmente" of DoD 30.
+ */
+@Composable
+fun FLabApp(viewModel: FLabViewModel, onShare: (String) -> Unit) {
+    val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    val screen by viewModel.screen.collectAsStateWithLifecycle()
+    val previewProgress by viewModel.previewProgress.collectAsStateWithLifecycle()
+
+    LaunchedEffect(ui.configuration.onboardingComplete) {
+        if (!ui.configuration.onboardingComplete) viewModel.navigate(FLabScreen.Onboarding)
+    }
+
+    BackHandler(enabled = screen != FLabScreen.Home && screen != FLabScreen.Onboarding) {
+        viewModel.back()
+    }
+
+    FoldMotionHost(
+        evidence = viewModel.evidence,
+        tuning = ui.profile.motion,
+        enabled = ui.configuration.enabled,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface,
+                        ),
+                    ),
+                ),
+        ) {
+            val wide = maxWidth >= WIDE_BREAKPOINT_DP.dp
+            val horizontalPadding = if (wide) 40.dp else 20.dp
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = horizontalPadding, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = MAX_CONTENT_WIDTH_DP.dp),
+                ) {
+                    ScreenContent(viewModel, ui, screen, previewProgress, wide, onShare)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScreenContent(
+    viewModel: FLabViewModel,
+    ui: FLabUiState,
+    screen: FLabScreen,
+    previewProgress: Float,
+    wide: Boolean,
+    onShare: (String) -> Unit,
+) {
+    AnimatedContent(
+        targetState = screen,
+        transitionSpec = {
+            (
+                slideInVertically(spring(stiffness = 380f)) { it / 14 } +
+                    fadeIn(spring(stiffness = 380f))
+                ) togetherWith fadeOut(spring(stiffness = 900f))
+        },
+        label = "screen",
+    ) { current ->
+        Column(Modifier.fillMaxWidth()) {
+            when (current) {
+                FLabScreen.Onboarding -> OnboardingScreen(onFinish = viewModel::completeOnboarding)
+
+                FLabScreen.Home -> HomeScreen(
+                    ui = ui,
+                    wide = wide,
+                    onNavigate = viewModel::navigate,
+                    onToggleEngine = viewModel::setEnabled,
+                )
+
+                FLabScreen.FoldMotion -> FoldMotionScreen(
+                    profile = ui.profile,
+                    progress = previewProgress,
+                    onScrub = viewModel::scrubPreview,
+                    hasHingeSensor = ui.device?.hasHingeSensor == true,
+                )
+
+                FLabScreen.Apps -> AppsScreen(
+                    profiles = ui.appProfiles,
+                    onCycleImmersive = viewModel::cycleImmersive,
+                    onCycleContinuity = viewModel::cycleContinuity,
+                )
+
+                FLabScreen.Profiles -> ProfilesScreen(
+                    active = ui.configuration.profileId,
+                    onSelect = viewModel::setProfile,
+                )
+
+                FLabScreen.Experiments -> ExperimentsScreen(
+                    enabled = ui.configuration.experimentsEnabled,
+                    onToggle = viewModel::setExperimentsEnabled,
+                )
+
+                FLabScreen.Access -> AccessScreen(requirements = viewModel.accessRequirements())
+
+                FLabScreen.Diagnostics -> DiagnosticsScreen(
+                    snapshot = viewModel.diagnostics(),
+                    report = viewModel::debugReport,
+                    onShare = onShare,
+                    onClearModuleFailure = viewModel::clearModuleFailure,
+                    onReset = viewModel::reset,
+                )
+            }
+
+            if (current != FLabScreen.Home && current != FLabScreen.Onboarding) {
+                Spacer(Modifier.height(24.dp))
+                FLabButton(
+                    text = "Back to F/LAB",
+                    onClick = viewModel::back,
+                    prominent = false,
+                    accent = FLabColors.textSecondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+/** Chosen to sit in the gap between a Fold's cover and inner widths, not on top of either. */
+private const val WIDE_BREAKPOINT_DP = 720
+
+/** Long lines are hard to read; on the inner display the content column stops growing here. */
+private const val MAX_CONTENT_WIDTH_DP = 1040

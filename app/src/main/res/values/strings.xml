@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">F/LAB</string>
+    <string name="debug_report_subject">F/LAB debug report</string>
+    <string name="debug_report_share">Share debug report</string>
 </resources>

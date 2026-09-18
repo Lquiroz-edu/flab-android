@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The pre-Android-12 half of the same decision as data_extraction_rules.xml: F/LAB's settings
+    describe this device and mean nothing on another one, so they are never backed up.
+-->
+<full-backup-content>
+    <exclude
+        domain="sharedpref"
+        path="flab_settings.xml" />
+</full-backup-content>

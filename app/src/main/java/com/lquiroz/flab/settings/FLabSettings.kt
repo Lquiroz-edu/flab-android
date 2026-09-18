@@ -2,6 +2,7 @@ package com.lquiroz.flab.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import com.lquiroz.flab.core.ModuleId
 import com.lquiroz.flab.profiles.AppProfile
 import com.lquiroz.flab.profiles.ProfileId
@@ -59,31 +60,31 @@ class FLabSettings(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }.conflate()
 
-    fun setEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
+    fun setEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ENABLED, enabled) }
 
     fun setOnboardingComplete(complete: Boolean) =
-        prefs.edit().putBoolean(KEY_ONBOARDING, complete).apply()
+        prefs.edit { putBoolean(KEY_ONBOARDING, complete) }
 
-    fun setProfile(id: ProfileId) = prefs.edit().putString(KEY_PROFILE, id.name).apply()
+    fun setProfile(id: ProfileId) = prefs.edit { putString(KEY_PROFILE, id.name) }
 
     fun setExperimentsEnabled(enabled: Boolean) =
-        prefs.edit().putBoolean(KEY_EXPERIMENTS, enabled).apply()
+        prefs.edit { putBoolean(KEY_EXPERIMENTS, enabled) }
 
     fun setModuleEnabled(module: ModuleId, enabled: Boolean) =
-        prefs.edit().putBoolean(moduleKey(module), enabled).apply()
+        prefs.edit { putBoolean(moduleKey(module), enabled) }
 
     fun setAppOverride(profile: AppProfile) {
         val updated = readOverrides().filterNot { it.packageName == profile.packageName } + profile
-        prefs.edit().putStringSet(KEY_OVERRIDES, updated.map(::encode).toSet()).apply()
+        prefs.edit { putStringSet(KEY_OVERRIDES, updated.map(::encode).toSet()) }
     }
 
     fun clearAppOverride(packageName: String) {
         val updated = readOverrides().filterNot { it.packageName == packageName }
-        prefs.edit().putStringSet(KEY_OVERRIDES, updated.map(::encode).toSet()).apply()
+        prefs.edit { putStringSet(KEY_OVERRIDES, updated.map(::encode).toSet()) }
     }
 
     /** Reset F/LAB (DoD 21): forget everything F/LAB stored. Nothing outside this file is touched. */
-    fun reset() = prefs.edit().clear().apply()
+    fun reset() = prefs.edit { clear() }
 
     private fun readProfile(): ProfileId {
         val stored = prefs.getString(KEY_PROFILE, null) ?: return ProfileId.Balanced

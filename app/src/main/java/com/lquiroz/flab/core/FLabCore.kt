@@ -2,7 +2,6 @@ package com.lquiroz.flab.core
 
 import android.app.Activity
 import android.content.Context
-import android.content.res.Configuration
 import android.os.Build
 import android.os.PowerManager
 import androidx.window.layout.FoldingFeature
@@ -326,9 +325,8 @@ class FLabCore(
     }
 
     private fun presentationOf(activity: Activity): WindowPresentation = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode ->
-            WindowPresentation.PictureInPicture
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInMultiWindowMode ->
+        activity.isInPictureInPictureMode -> WindowPresentation.PictureInPicture
+        activity.isInMultiWindowMode ->
             if (isFreeForm(activity)) WindowPresentation.FreeForm else WindowPresentation.SplitScreen
         else -> WindowPresentation.FullScreen
     }
@@ -347,7 +345,3 @@ class FLabCore(
         const val FREEFORM_MAX_DP = 500
     }
 }
-
-/** Convenience for reading the current configuration's orientation label. */
-val Configuration.screenOrientationLabel: String
-    get() = if (orientation == Configuration.ORIENTATION_LANDSCAPE) "Landscape" else "Portrait"
