@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,12 +24,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.lquiroz.flab.core.ModuleId
 import com.lquiroz.flab.core.PowerPosture
+import com.lquiroz.flab.core.SetupProgress
+import com.lquiroz.flab.core.SetupStep
+import com.lquiroz.flab.core.SetupStepId
 import com.lquiroz.flab.profiles.TreatmentMode
 import com.lquiroz.flab.ui.FLabScreen
 import com.lquiroz.flab.ui.FLabUiState
 import com.lquiroz.flab.ui.components.Dot
 import com.lquiroz.flab.ui.components.FLabButton
 import com.lquiroz.flab.ui.components.FLabCard
+import com.lquiroz.flab.ui.components.FLabGlassCard
 import com.lquiroz.flab.ui.components.Pill
 import com.lquiroz.flab.ui.components.SectionLabel
 import com.lquiroz.flab.ui.components.StatusRow
@@ -51,11 +56,45 @@ fun HomeScreen(
     wide: Boolean,
     onNavigate: (FLabScreen) -> Unit,
     onToggleEngine: (Boolean) -> Unit,
+    onBeginSetup: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val setupSteps = remember(
+        ui.configuration.enabled,
+        ui.systemEffects.hasOverlayPermission,
+        ui.systemEffects.accessibilityEnabled,
+    ) {
+        SetupProgress.steps(
+            engineEnabled = ui.configuration.enabled,
+            hasOverlayPermission = ui.systemEffects.hasOverlayPermission,
+            hasAccessibilityPermission = ui.systemEffects.accessibilityEnabled,
+        )
+    }
+    val setupComplete = SetupProgress.isComplete(setupSteps)
+
     Column(modifier = modifier.fillMaxWidth()) {
         HomeHeader(ui, onToggleEngine)
         Spacer(Modifier.height(24.dp))
+
+        // Shown until the three steps are done, then gone for good — the point of a checklist is
+        // that it stops asking once there is nothing left to ask (DoD 18).
+        AnimatedVisibility(
+            visible = !setupComplete,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column {
+                SetupCard(
+                    steps = setupSteps,
+                    onBeginSetup = onBeginSetup,
+                    onOpenOverlaySettings = onOpenOverlaySettings,
+                    onOpenAccessibilitySettings = onOpenAccessibilitySettings,
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
 
         AnimatedVisibility(
             visible = ui.needsAttention,
@@ -114,6 +153,78 @@ private fun HomeHeader(ui: FLabUiState, onToggleEngine: (Boolean) -> Unit) {
             accent = if (ui.configuration.enabled) MaterialTheme.colorScheme.primary else FLabColors.textSecondary,
             filled = ui.configuration.enabled,
             onClick = { onToggleEngine(!ui.configuration.enabled) },
+        )
+    }
+}
+
+/**
+ * The guided activation checklist (DoD 18, 43): the single visible path from "just installed" to
+ * "genuinely running", instead of the three separate discoveries — the Home pill, F/LAB Access,
+ * the System effects toggle — that used to be scattered across screens with nothing tying them
+ * together into one obvious next action.
+ *
+ * The one place [FLabGlassCard] is used outside the wallpaper: this is the single most important
+ * thing on the screen while it is showing, which is exactly the case DoD 40's "few visible
+ * settings at once" reserves it for.
+ */
+@Composable
+private fun SetupCard(
+    steps: List<SetupStep>,
+    onBeginSetup: () -> Unit,
+    onOpenOverlaySettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
+) {
+    val remaining = steps.count { !it.done }
+    FLabGlassCard(Modifier.fillMaxWidth()) {
+        SectionLabel("Get F/LAB fully working")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = if (remaining == 1) "One step left" else "$remaining steps left",
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Fold Motion, Continuity and the system-wide effect all come from these same " +
+                "switches. Once they are done you will not need to come back here for them.",
+            style = MaterialTheme.typography.bodySmall,
+            color = FLabColors.textSecondary,
+        )
+        Spacer(Modifier.height(18.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            steps.forEach { SetupStepRow(it) }
+        }
+        Spacer(Modifier.height(18.dp))
+        when (SetupProgress.nextStep(steps)?.id) {
+            SetupStepId.EngineOn -> FLabButton(
+                text = "Turn F/LAB on",
+                onClick = onBeginSetup,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SetupStepId.OverlayPermission -> FLabButton(
+                text = "Allow display over other apps",
+                onClick = onOpenOverlaySettings,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SetupStepId.AccessibilityPermission -> FLabButton(
+                text = "Allow app awareness",
+                onClick = onOpenAccessibilitySettings,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            null -> Unit
+        }
+    }
+}
+
+@Composable
+private fun SetupStepRow(step: SetupStep) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Dot(if (step.done) FLabColors.ok else FLabColors.textSecondary, size = if (step.done) 10 else 8)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = step.title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (step.done) MaterialTheme.colorScheme.onSurface else FLabColors.textSecondary,
+            fontWeight = if (step.done) FontWeight.Medium else FontWeight.Normal,
         )
     }
 }

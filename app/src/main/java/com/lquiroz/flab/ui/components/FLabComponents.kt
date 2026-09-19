@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +78,50 @@ fun FLabCard(
                 } else {
                     Modifier
                 },
+            )
+            .padding(contentPadding.dp),
+        content = content,
+    )
+}
+
+/**
+ * F/LAB's frosted-glass surface, reserved for the single most important call-to-action on a
+ * screen. DoD 40 asks for "pocos ajustes visibles simultáneamente" — using this everywhere would
+ * cancel out the reason it stands out at all, so it belongs on the thing the user most needs to
+ * notice (the guided setup card on Home), not on every card in the app.
+ *
+ * This is a **static approximation**, not the real backdrop blur `FoldWallpaperService`'s glass
+ * cards use, and that difference is deliberate rather than a shortcut. That wallpaper blurs one
+ * static bitmap, rebuilt only when the surface size or the theme changes. A card here sits over a
+ * *scrolling* screen — blurring what is actually behind it live would mean capturing a fresh
+ * snapshot of that content every frame, which is precisely the kind of per-frame cost DoD 22 and 23
+ * rule out elsewhere in this project. So this reaches for the same reading — translucency, a soft
+ * tinted highlight, a hairline border — through a gradient tint instead of a sampled blur, and does
+ * not pretend otherwise.
+ */
+@Composable
+fun FLabGlassCard(
+    modifier: Modifier = Modifier,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    contentPadding: Int = 22,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val dark = FLabColors.isDark
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(FLabTokens.RadiusCard))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        accent.copy(alpha = if (dark) 0.20f else 0.16f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.94f else 0.90f),
+                    ),
+                ),
+            )
+            .border(
+                1.dp,
+                Color.White.copy(alpha = if (dark) 0.14f else 0.55f),
+                RoundedCornerShape(FLabTokens.RadiusCard),
             )
             .padding(contentPadding.dp),
         content = content,

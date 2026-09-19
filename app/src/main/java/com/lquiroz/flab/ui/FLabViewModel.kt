@@ -13,6 +13,7 @@ import com.lquiroz.flab.core.EngineStatus
 import com.lquiroz.flab.core.Experiments
 import com.lquiroz.flab.core.FLabState
 import com.lquiroz.flab.core.ModuleId
+import com.lquiroz.flab.core.SetupProgress
 import com.lquiroz.flab.diagnostics.AccessRequirement
 import com.lquiroz.flab.diagnostics.DebugReport
 import com.lquiroz.flab.diagnostics.DeviceReport
@@ -68,12 +69,17 @@ data class FLabUiState(
             else -> "F/LAB Active"
         }
 
+    /**
+     * Whether [AttentionCard][com.lquiroz.flab.ui.screens.HomeScreen] shows.
+     *
+     * Deliberately scoped to breaker trips only, not to System effects missing a grant — that case
+     * is fully owned by the Home setup checklist (`SetupProgress`), which reappears automatically
+     * the moment any of its three steps becomes undone, permission revoked later included, and
+     * says exactly what is missing with a button to fix it. Folding that case in here as well would
+     * show a second, emptier card underneath the checklist with nothing of its own to say.
+     */
     val needsAttention: Boolean
-        get() = configuration.enabled &&
-            (
-                state.moduleStates.values.any { it.disabledByBreaker } ||
-                    (systemEffects.enabled && !systemEffects.canRun)
-                )
+        get() = configuration.enabled && state.moduleStates.values.any { it.disabledByBreaker }
 }
 
 /**
@@ -196,6 +202,19 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
     // ------------------------------------------------------------------ actions
 
     fun setEnabled(enabled: Boolean) = if (enabled) core.enable() else core.disable()
+
+    /**
+     * The Home setup checklist's first tap (DoD 18, 43): turns the engine on and records the
+     * intent to run System effects in the same action, rather than leaving "flip that toggle too"
+     * as a fourth thing to remember after granting two permissions.
+     *
+     * Safe to call before either permission is granted — [setSystemEffectsEnabled] only starts the
+     * service once both are in place, and does nothing harmful otherwise (see [SetupProgress]).
+     */
+    fun beginGuidedSetup() {
+        setEnabled(true)
+        setSystemEffectsEnabled(true)
+    }
 
     fun setProfile(id: ProfileId) = core.setProfile(id)
 

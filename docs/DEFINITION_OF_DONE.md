@@ -181,8 +181,14 @@ a rationale stating what is read and what is not.
 `ui/screens/AccessScreen.kt` answers the same three questions for every capability: what it is,
 what F/LAB does with it, what stops working without it.
 
-### 18. Zero-Touch Operation — **Structured**
+### 18. Zero-Touch Operation — **Done**
 No daily interaction is required. Configuration is persisted and the engine is event-driven.
+`core/SetupProgress.kt` plus Home's guided setup card collapse the "turn F/LAB on, grant two
+permissions, remember to flip System effects on too" sequence into three taps and no toggle left to
+recall afterwards: the setup preference is set the moment the user starts, and the existing
+reconciliation in `FLabViewModel.refreshAccess` starts the service itself the instant both grants
+land, in whichever order they were granted. The checklist disappears once done and reappears on its
+own if a grant is later revoked — the same three-boolean check either way.
 
 ### 19. Boot Persistence — **Done**
 `BootReceiver.kt` plus `settings/FLabSettings.kt`. Deliberately does *not* start a service at boot:
@@ -277,7 +283,13 @@ does the version gating and layering a remote source would need. No backend, as 
 
 ### 40. F/LAB design — **Done**
 `ui/theme/FLabTheme.kt` defines both light and dark schemes, not a dark palette with a fallback.
-Minimal, high contrast, depth from material, blur used sparingly.
+Minimal, high contrast, depth from material, blur used sparingly — which is also why
+`FLabGlassCard` (`ui/components/FLabComponents.kt`), the frosted-glass surface, is reserved for the
+single most important thing on a screen (the Home setup checklist) rather than applied everywhere:
+DoD 40's own "pocos ajustes visibles simultáneamente" is the reason it stands out at all. It is a
+static translucency-and-border treatment, not the wallpaper's real backdrop blur — a card sits over
+a scrolling screen, and blurring live content behind it every frame would cost exactly what DoD 22
+and 23 rule out, so it reaches for the same reading through a cheaper, honest approximation instead.
 
 ### 41. F/LAB animations — **Done**
 The whole app is wrapped in `FoldMotionHost`, so F/LAB's own screens get the treatment F/LAB is

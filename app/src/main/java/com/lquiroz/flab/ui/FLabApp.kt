@@ -148,6 +148,11 @@ private fun ScreenContent(
                     wide = wide,
                     onNavigate = viewModel::navigate,
                     onToggleEngine = viewModel::setEnabled,
+                    onBeginSetup = viewModel::beginGuidedSetup,
+                    onOpenOverlaySettings = { onOpenSettings(viewModel.overlayPermissionIntent()) },
+                    onOpenAccessibilitySettings = {
+                        onOpenSettings(viewModel.accessibilitySettingsIntent())
+                    },
                 )
 
                 FLabScreen.FoldMotion -> FoldMotionScreen(
