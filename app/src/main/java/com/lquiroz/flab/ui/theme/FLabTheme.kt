@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +53,24 @@ object FLabTokens {
     val RadiusControl = 18.dp
     val RadiusPill = 100.dp
 }
+
+/**
+ * The vivid two-hue partner for [accent], so a filled control reads as a deliberate colour choice
+ * rather than a single flat swatch — the gradient pills and glossy toggles of the "Liquid Glass"
+ * look this app is chasing.
+ */
+fun FLabTokens.gradientPartner(accent: Color): Color = when (accent) {
+    Cyan, CyanDeep -> Violet
+    Violet, VioletDeep -> Cyan
+    Amber -> Red
+    Green -> Cyan
+    Red -> Violet
+    else -> accent
+}
+
+/** A vivid linear gradient from [accent] to its [gradientPartner], for buttons and filled pills. */
+fun FLabTokens.gradientBrush(accent: Color): Brush =
+    Brush.linearGradient(listOf(accent, gradientPartner(accent)))
 
 /**
  * Semantic colours Material's scheme has no slot for.

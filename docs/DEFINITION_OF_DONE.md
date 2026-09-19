@@ -283,13 +283,16 @@ does the version gating and layering a remote source would need. No backend, as 
 
 ### 40. F/LAB design — **Done**
 `ui/theme/FLabTheme.kt` defines both light and dark schemes, not a dark palette with a fallback.
-Minimal, high contrast, depth from material, blur used sparingly — which is also why
-`FLabGlassCard` (`ui/components/FLabComponents.kt`), the frosted-glass surface, is reserved for the
-single most important thing on a screen (the Home setup checklist) rather than applied everywhere:
-DoD 40's own "pocos ajustes visibles simultáneamente" is the reason it stands out at all. It is a
-static translucency-and-border treatment, not the wallpaper's real backdrop blur — a card sits over
-a scrolling screen, and blurring live content behind it every frame would cost exactly what DoD 22
-and 23 rule out, so it reaches for the same reading through a cheaper, honest approximation instead.
+Glass is the default surface treatment across the whole app, not an occasional accent:
+`FLabCard` (`ui/components/FLabComponents.kt`) is translucent by default, `FLabApp`'s `GlassBackdrop`
+paints a static, colourful multi-blob background behind every screen so that translucency actually
+reads as glass, and `FLabButton`/`Pill` fill with a vivid two-hue gradient (`FLabTokens.gradientBrush`)
+rather than a flat swatch. `FLabGlassCard` remains the more saturated hero variant, for the single
+most important thing on a screen (the Home setup checklist), carrying a stronger two-hue tint through
+to the surface underneath. None of this is the wallpaper's real backdrop blur — a card sits over a
+scrolling screen, and blurring live content behind it every frame would cost exactly what DoD 22
+and 23 rule out, so it reaches for the same reading through static gradients and translucency, a
+cheaper and honest approximation of "Liquid Glass" rather than a pixel-accurate clone of it.
 
 ### 41. F/LAB animations — **Done**
 The whole app is wrapped in `FoldMotionHost`, so F/LAB's own screens get the treatment F/LAB is

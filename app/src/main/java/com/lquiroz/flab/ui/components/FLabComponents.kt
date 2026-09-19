@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
@@ -35,6 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.lquiroz.flab.ui.theme.FLabColors
 import com.lquiroz.flab.ui.theme.FLabTokens
+import com.lquiroz.flab.ui.theme.gradientBrush
+import com.lquiroz.flab.ui.theme.gradientPartner
 
 /**
  * The F/LAB component set.
@@ -45,7 +48,14 @@ import com.lquiroz.flab.ui.theme.FLabTokens
  * change is animated rather than swapped.
  */
 
-/** The standard F/LAB surface: raised, hairline-outlined, generous corner. */
+/**
+ * The standard F/LAB surface: translucent, hairline-outlined, generous corner.
+ *
+ * Glass is the default treatment now, not an occasional accent — a card lets the colourful
+ * backdrop [FLabApp][com.lquiroz.flab.ui.FLabApp] paints behind every screen show through, which
+ * is what actually reads as "glass" rather than a single flat panel. The translucency is a static
+ * gradient fill, not a sampled blur, so it costs nothing per frame.
+ */
 @Composable
 fun FLabCard(
     modifier: Modifier = Modifier,
@@ -53,6 +63,7 @@ fun FLabCard(
     contentPadding: Int = 20,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val dark = FLabColors.isDark
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -65,8 +76,19 @@ fun FLabCard(
         modifier = modifier
             .scale(scale)
             .clip(RoundedCornerShape(FLabTokens.RadiusCard))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, FLabColors.outline, RoundedCornerShape(FLabTokens.RadiusCard))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.72f else 0.68f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.92f else 0.90f),
+                    ),
+                ),
+            )
+            .border(
+                1.dp,
+                Color.White.copy(alpha = if (dark) 0.10f else 0.45f),
+                RoundedCornerShape(FLabTokens.RadiusCard),
+            )
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
@@ -85,17 +107,18 @@ fun FLabCard(
 }
 
 /**
- * F/LAB's frosted-glass surface, reserved for the single most important call-to-action on a
- * screen. DoD 40 asks for "pocos ajustes visibles simultáneamente" — using this everywhere would
- * cancel out the reason it stands out at all, so it belongs on the thing the user most needs to
- * notice (the guided setup card on Home), not on every card in the app.
+ * F/LAB's hero glass surface, for the single most important call-to-action on a screen (the
+ * guided setup card on Home). Where [FLabCard] is a quiet translucent panel, this one carries a
+ * real two-hue tint through to the surface underneath it, the way a coloured pane of glass reads
+ * more distinctly than a clear one — so the thing the user most needs to notice still stands out
+ * even now that translucency is everywhere.
  *
- * This is a **static approximation**, not the real backdrop blur `FoldWallpaperService`'s glass
- * cards use, and that difference is deliberate rather than a shortcut. That wallpaper blurs one
- * static bitmap, rebuilt only when the surface size or the theme changes. A card here sits over a
+ * This is a **static gradient**, not the real backdrop blur `FoldWallpaperService`'s glass cards
+ * use, and that difference is deliberate rather than a shortcut. That wallpaper blurs one static
+ * bitmap, rebuilt only when the surface size or the theme changes. A card here sits over a
  * *scrolling* screen — blurring what is actually behind it live would mean capturing a fresh
  * snapshot of that content every frame, which is precisely the kind of per-frame cost DoD 22 and 23
- * rule out elsewhere in this project. So this reaches for the same reading — translucency, a soft
+ * rule out elsewhere in this project. So this reaches for the same reading — translucency, a vivid
  * tinted highlight, a hairline border — through a gradient tint instead of a sampled blur, and does
  * not pretend otherwise.
  */
@@ -113,14 +136,15 @@ fun FLabGlassCard(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        accent.copy(alpha = if (dark) 0.20f else 0.16f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.94f else 0.90f),
+                        accent.copy(alpha = if (dark) 0.32f else 0.26f),
+                        FLabTokens.gradientPartner(accent).copy(alpha = if (dark) 0.20f else 0.16f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.88f else 0.84f),
                     ),
                 ),
             )
             .border(
                 1.dp,
-                Color.White.copy(alpha = if (dark) 0.14f else 0.55f),
+                Color.White.copy(alpha = if (dark) 0.18f else 0.60f),
                 RoundedCornerShape(FLabTokens.RadiusCard),
             )
             .padding(contentPadding.dp),
@@ -197,7 +221,7 @@ fun Dot(color: Color, size: Int = 8) {
     )
 }
 
-/** A small capsule used for modes, states and counts. */
+/** A small capsule used for modes, states and counts. Filled pills carry a vivid two-hue gradient. */
 @Composable
 fun Pill(
     text: String,
@@ -206,23 +230,35 @@ fun Pill(
     filled: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
-    val background by animateColorAsState(
-        targetValue = if (filled) accent else accent.copy(alpha = 0.12f),
-        label = "pillBackground",
-    )
+    val fillAmount by animateFloatAsState(targetValue = if (filled) 1f else 0f, label = "pillFill")
     val foreground by animateColorAsState(
-        targetValue = if (filled) MaterialTheme.colorScheme.surface else accent,
+        targetValue = if (filled) Color.White else accent,
         label = "pillForeground",
     )
+    val shape = RoundedCornerShape(FLabTokens.RadiusPill)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(FLabTokens.RadiusPill))
-            .background(background)
-            .border(1.dp, accent.copy(alpha = if (filled) 0f else 0.4f), RoundedCornerShape(FLabTokens.RadiusPill))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .clip(shape)
+            .background(accent.copy(alpha = 0.12f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
-        Text(text, style = MaterialTheme.typography.labelSmall, color = foreground)
+        Box(
+            Modifier
+                .matchParentSize()
+                .alpha(fillAmount)
+                .background(FLabTokens.gradientBrush(accent)),
+        )
+        Box(
+            Modifier
+                .matchParentSize()
+                .border(1.dp, accent.copy(alpha = (1f - fillAmount) * 0.4f), shape),
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = foreground,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+        )
     }
 }
 
@@ -246,7 +282,13 @@ fun FLabButton(
         modifier = modifier
             .scale(scale)
             .clip(RoundedCornerShape(FLabTokens.RadiusControl))
-            .background(if (prominent) accent else Color.Transparent)
+            .then(
+                if (prominent) {
+                    Modifier.background(FLabTokens.gradientBrush(accent))
+                } else {
+                    Modifier.background(Color.Transparent)
+                },
+            )
             .border(
                 1.dp,
                 if (prominent) Color.Transparent else accent.copy(alpha = 0.5f),
@@ -259,7 +301,7 @@ fun FLabButton(
         Text(
             text = text,
             style = MaterialTheme.typography.titleMedium,
-            color = if (prominent) MaterialTheme.colorScheme.surface else accent,
+            color = if (prominent) Color.White else accent,
             fontWeight = FontWeight.SemiBold,
         )
     }

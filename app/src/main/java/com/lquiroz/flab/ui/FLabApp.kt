@@ -14,14 +14,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -30,7 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lquiroz.flab.ui.components.FLabButton
@@ -44,6 +49,7 @@ import com.lquiroz.flab.ui.screens.HomeScreen
 import com.lquiroz.flab.ui.screens.OnboardingScreen
 import com.lquiroz.flab.ui.screens.ProfilesScreen
 import com.lquiroz.flab.ui.theme.FLabColors
+import com.lquiroz.flab.ui.theme.FLabTokens
 
 /**
  * The F/LAB shell.
@@ -83,18 +89,9 @@ fun FLabApp(
         onSettled = viewModel::onMotionSettled,
         modifier = Modifier.fillMaxSize(),
     ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.surface,
-                        ),
-                    ),
-                ),
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            GlassBackdrop(modifier = Modifier.fillMaxSize())
+
             val wide = maxWidth >= WIDE_BREAKPOINT_DP.dp
             val horizontalPadding = if (wide) 40.dp else 20.dp
 
@@ -214,6 +211,75 @@ private fun ScreenContent(
             }
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * The colourful backdrop every screen sits over. Three soft, static colour blobs on the base
+ * scheme gradient — this is what actually makes [com.lquiroz.flab.ui.components.FLabCard]'s
+ * translucency read as glass rather than as a plain dimmed panel. It is one composition, redrawn
+ * only on resize or theme change, never per frame, so it costs nothing while scrolling or during a
+ * fold transition.
+ */
+@Composable
+private fun GlassBackdrop(modifier: Modifier = Modifier) {
+    val dark = FLabColors.isDark
+    val blobAlpha = if (dark) 1f else 0.7f
+    Box(modifier = modifier) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface,
+                        ),
+                    ),
+                ),
+        )
+        Box(
+            Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth(0.95f)
+                .aspectRatio(1f)
+                .offset((-90).dp, (-130).dp)
+                .blur(120.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(FLabTokens.Violet.copy(alpha = 0.30f * blobAlpha), Color.Transparent),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxWidth(0.85f)
+                .aspectRatio(1f)
+                .offset(110.dp, (-70).dp)
+                .blur(120.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(FLabTokens.Cyan.copy(alpha = 0.26f * blobAlpha), Color.Transparent),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(1f)
+                .aspectRatio(1.1f)
+                .offset(y = 160.dp)
+                .blur(140.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(FLabTokens.Amber.copy(alpha = 0.16f * blobAlpha), Color.Transparent),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
     }
 }
 
