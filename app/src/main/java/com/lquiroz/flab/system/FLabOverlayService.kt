@@ -151,8 +151,12 @@ class FLabOverlayService : Service() {
             val channels = engine.advance(System.nanoTime())
             applyVerdict(channels)
         }
-        lastVerdict.value = OverlayVerdict.NotMoving
-        overlay.hide()
+        // One more pass at rest, through the same policy rather than a hardcoded verdict. Motion
+        // settling and the policy's reason for not showing are independent: if the engine is off,
+        // an app is protected, or a permission is missing, that is still the true answer once the
+        // device stops moving, and stamping NotMoving over it would hide the real cause from
+        // Diagnostics and from Home.
+        applyVerdict(MotionChannels.Neutral)
     }
 
     private fun applyVerdict(channels: MotionChannels) {

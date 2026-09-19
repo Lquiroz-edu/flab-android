@@ -133,12 +133,17 @@ private fun SystemEffectsCard(
         Text(
             text = "Applies the fold treatment across the whole system rather than only inside " +
                 "F/LAB. While you open or close the device, what is on screen softens and settles " +
-                "with the hinge. It needs two things, and it will not start without both.",
+                "with the hinge. It needs three things, and it will not start without all of them.",
             style = MaterialTheme.typography.bodyMedium,
             color = FLabColors.textSecondary,
         )
 
         Spacer(Modifier.height(18.dp))
+
+        if (!systemEffects.engineEnabled) {
+            EngineRequirementRow()
+            Spacer(Modifier.height(14.dp))
+        }
 
         GrantRow(
             title = "Display over other apps",
@@ -232,6 +237,38 @@ private fun RestrictedSettingsHelp(onOpenAppDetails: () -> Unit) {
             onClick = onOpenAppDetails,
             prominent = false,
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * The requirement neither permission dialog covers: F/LAB's own engine has to be on.
+ *
+ * System effects extends Fold Motion outside F/LAB's window, so it has nothing to extend while
+ * the main engine is off. Without this row, both grants below can read "Granted" while the effect
+ * still cannot fire, and nothing on this screen would say why.
+ */
+@Composable
+private fun EngineRequirementRow() {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "F/LAB turned on",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Pill(text = "Not on", accent = FLabColors.textSecondary)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "System effects extends Fold Motion outside F/LAB, so F/LAB's own engine has " +
+                "to be running first. Turn it on with the pill at the top of Home.",
+            style = MaterialTheme.typography.bodySmall,
+            color = FLabColors.textSecondary,
         )
     }
 }

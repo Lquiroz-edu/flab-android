@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.lquiroz.flab.FLabApplication
 import com.lquiroz.flab.compat.CompatibilityRegistry
 import com.lquiroz.flab.compat.ConfigResolver
+import com.lquiroz.flab.core.EngineStatus
 import com.lquiroz.flab.core.Experiments
 import com.lquiroz.flab.core.FLabState
 import com.lquiroz.flab.core.ModuleId
@@ -86,12 +87,23 @@ data class SystemEffectsState(
     val serviceRunning: Boolean = false,
     val hasOverlayPermission: Boolean = false,
     val accessibilityEnabled: Boolean = false,
+    /**
+     * Whether F/LAB's own engine is on — the main pill on Home, not this feature's own switch.
+     *
+     * System effects extends Fold Motion outside F/LAB's window; it has nothing to extend if the
+     * engine itself is off. Without this in [canRun], the Home row could read "ON" and Access could
+     * show both grants satisfied while the effect can never actually fire — exactly what happened
+     * before this field existed: enabling System effects with the main engine off left every visible
+     * signal claiming success.
+     */
+    val engineEnabled: Boolean = false,
     val verdict: OverlayVerdict = OverlayVerdict.ModuleOff,
 ) {
-    val canRun: Boolean get() = hasOverlayPermission && accessibilityEnabled
+    val canRun: Boolean get() = hasOverlayPermission && accessibilityEnabled && engineEnabled
 
     val missing: List<String>
         get() = buildList {
+            if (!engineEnabled) add("F/LAB turned on")
             if (!hasOverlayPermission) add("Display over other apps")
             if (!accessibilityEnabled) add("App awareness")
         }
@@ -150,6 +162,7 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
                 serviceRunning = serviceRunning,
                 hasOverlayPermission = SystemAccess.canDrawOverlays(application),
                 accessibilityEnabled = SystemAccess.isAccessibilityServiceEnabled(application),
+                engineEnabled = state.engineStatus == EngineStatus.Active,
                 verdict = verdict,
             ),
         )
