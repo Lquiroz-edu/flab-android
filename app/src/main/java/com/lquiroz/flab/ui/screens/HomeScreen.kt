@@ -12,10 +12,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,9 +34,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lquiroz.flab.core.ModuleId
 import com.lquiroz.flab.core.PowerPosture
 import com.lquiroz.flab.core.SetupProgress
@@ -47,6 +57,7 @@ import com.lquiroz.flab.ui.components.Pill
 import com.lquiroz.flab.ui.components.SectionLabel
 import com.lquiroz.flab.ui.components.TileArrow
 import com.lquiroz.flab.ui.theme.FLabColors
+import com.lquiroz.flab.ui.theme.FLabTokens
 
 /**
  * The control centre (DoD 10).
@@ -158,37 +169,179 @@ private fun HomeHeader(ui: FLabUiState, onToggleEngine: (Boolean) -> Unit) {
 
 /**
  * The device hero: what F/LAB is running on, and one sentence on how it is doing right now —
- * Home's front page rather than a "Device" settings row.
+ * Home's front page rather than a "Device" settings row. The 3D fold illustration sits as a
+ * sibling of the card, not a child of it, so it can spill past the card's rounded corner instead
+ * of being clipped to it.
  */
 @Composable
 private fun HeroCard(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
     val device = ui.device
-    FLabCard(Modifier.fillMaxWidth(), contentPadding = 22) {
-        SectionLabel("Your Fold")
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = device?.displayName ?: "Detecting your device",
-            style = MaterialTheme.typography.headlineSmall,
+    Box(Modifier.fillMaxWidth()) {
+        FLabCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 248.dp),
+            contentPadding = 22,
+        ) {
+            Column(Modifier.widthIn(max = 190.dp)) {
+                SectionLabel("Your Fold")
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = device?.displayName ?: "Detecting your device",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = when {
+                        device == null -> "Reading device information."
+                        !ui.configuration.enabled -> "Turn F/LAB on to start following the hinge."
+                        device.isFoldable && device.hasHingeSensor ->
+                            "Continuity, motion and immersive behaviour are active."
+                        device.isFoldable ->
+                            "Foldable detected, posture events only — motion will be coarser."
+                        else -> "No hinge reported — Fold Motion has nothing to follow."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FLabColors.textSecondary,
+                )
+                Spacer(Modifier.height(16.dp))
+                Pill(
+                    text = if (ui.needsAttention) "Action required" else "All systems working",
+                    accent = if (ui.needsAttention) FLabColors.warning else FLabColors.ok,
+                    onClick = { onNavigate(FLabScreen.Diagnostics) },
+                )
+            }
+        }
+        FoldDeviceIllustration(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 14.dp, y = 18.dp)
+                .size(width = 148.dp, height = 186.dp),
         )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = when {
-                device == null -> "Reading device information."
-                !ui.configuration.enabled -> "Turn F/LAB on to start following the hinge."
-                device.isFoldable && device.hasHingeSensor ->
-                    "Continuity, motion and immersive behaviour are active."
-                device.isFoldable -> "Foldable detected, posture events only — motion will be coarser."
-                else -> "No hinge reported — Fold Motion has nothing to follow."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = FLabColors.textSecondary,
-        )
-        Spacer(Modifier.height(16.dp))
-        Pill(
-            text = if (ui.needsAttention) "Action required" else "All systems working",
-            accent = if (ui.needsAttention) FLabColors.warning else FLabColors.ok,
-            onClick = { onNavigate(FLabScreen.Diagnostics) },
-        )
+    }
+}
+
+/**
+ * A small, static illustration of the folded device — the camera panel, the hinge and the screen,
+ * tilted with a real perspective transform (`graphicsLayer`'s rotationY/rotationX/cameraDistance)
+ * rather than a traced photo or an imported image. One composition, no per-frame cost, and nothing
+ * to fetch: exactly the kind of asset DoD 22/23's "no per-frame cost, no network" discipline favours
+ * over a bundled render.
+ */
+@Composable
+private fun FoldDeviceIllustration(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.graphicsLayer {
+            rotationY = -20f
+            rotationX = 5f
+            cameraDistance = 14f * density
+        },
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            // Back panel: the camera module side.
+            Box(
+                modifier = Modifier
+                    .weight(0.42f)
+                    .fillMaxHeight()
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 18.dp,
+                            bottomStart = 18.dp,
+                            topEnd = 3.dp,
+                            bottomEnd = 3.dp,
+                        ),
+                    )
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFFE7EAEE), Color(0xFFB7BCC4), Color(0xFF90969F)),
+                        ),
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 14.dp, start = 9.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    repeat(3) {
+                        Box(
+                            Modifier
+                                .size(11.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(listOf(Color(0xFF4A4D52), Color(0xFF0C0D0F))),
+                                ),
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .padding(start = 3.dp, top = 1.dp)
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFDFE4EA)),
+                    )
+                }
+            }
+            // Hinge.
+            Box(
+                modifier = Modifier
+                    .weight(0.05f)
+                    .fillMaxHeight()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF4A4D52), Color(0xFF1A1C1F)))),
+            )
+            // Front panel: the screen, lit from inside like it is mid-boot.
+            Box(
+                modifier = Modifier
+                    .weight(0.53f)
+                    .fillMaxHeight()
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 3.dp,
+                            bottomStart = 3.dp,
+                            topEnd = 18.dp,
+                            bottomEnd = 18.dp,
+                        ),
+                    )
+                    .background(Brush.linearGradient(listOf(Color(0xFF191C22), Color(0xFF030406)))),
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth(0.75f)
+                        .fillMaxHeight(0.6f)
+                        .background(
+                            Brush.radialGradient(listOf(FLabTokens.Violet.copy(alpha = 0.40f), Color.Transparent)),
+                        ),
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .fillMaxWidth(0.7f)
+                        .fillMaxHeight(0.55f)
+                        .background(
+                            Brush.radialGradient(listOf(FLabTokens.Cyan.copy(alpha = 0.32f), Color.Transparent)),
+                        ),
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 9.dp)
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF0C0D0F)),
+                )
+                Text(
+                    text = "Unfold\nMore",
+                    color = Color.White.copy(alpha = 0.88f),
+                    fontSize = 9.sp,
+                    lineHeight = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 10.dp, bottom = 11.dp),
+                )
+            }
+        }
     }
 }
 
