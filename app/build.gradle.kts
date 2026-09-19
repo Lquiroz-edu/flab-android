@@ -19,6 +19,41 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    /**
+     * Release signing, supplied by the environment rather than committed.
+     *
+     * A stable signing key is what makes installing through a session-based installer — an app
+     * store, or Obtainium pointed at this repo's releases — possible at all. Installing that way
+     * exempts F/LAB from Android's Restricted Settings block, which is otherwise the thing standing
+     * between a sideloaded build and its accessibility service.
+     *
+     * The key itself never enters the repository: `.gitignore` already excludes `*.jks` and
+     * `*.keystore`, and CI materialises it from a secret. See README for the four values.
+     */
+    val keystorePath: String? = System.getenv("FLAB_KEYSTORE_PATH")
+    val keystorePassword: String? = System.getenv("FLAB_KEYSTORE_PASSWORD")
+    val keyAlias: String? = System.getenv("FLAB_KEY_ALIAS")
+    val keyPassword: String? = System.getenv("FLAB_KEY_PASSWORD")
+    val hasReleaseSigning = !keystorePath.isNullOrBlank() &&
+        !keystorePassword.isNullOrBlank() &&
+        !keyAlias.isNullOrBlank() &&
+        !keyPassword.isNullOrBlank() &&
+        file(keystorePath).exists()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystorePath!!)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -26,6 +61,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Falls back to the debug config when no release key is configured, so a release build
+            // is always installable. The fallback is not a substitute: the debug key differs per
+            // machine, so an update signed with a different one forces an uninstall. CI warns when
+            // it takes this path.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
