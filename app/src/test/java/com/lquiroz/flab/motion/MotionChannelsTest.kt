@@ -2,6 +2,7 @@ package com.lquiroz.flab.motion
 
 import com.lquiroz.flab.motion.MotionChannels.Companion.MAX_BLUR_DP
 import com.lquiroz.flab.motion.MotionChannels.Companion.MAX_DIM_ALPHA
+import com.lquiroz.flab.motion.MotionChannels.Companion.MAX_WARP
 import com.lquiroz.flab.motion.MotionChannels.Companion.MIN_CONTENT_ALPHA
 import com.lquiroz.flab.motion.MotionChannels.Companion.MIN_CONTENT_SCALE
 import org.junit.Assert.assertEquals
@@ -60,9 +61,37 @@ class MotionChannelsTest {
                     assertTrue("dim never opaque", channels.dimAlpha in 0f..MAX_DIM_ALPHA)
                     assertTrue("alpha", channels.contentAlpha in MIN_CONTENT_ALPHA..1f)
                     assertTrue("scale", channels.contentScale in MIN_CONTENT_SCALE..1f)
+                    assertTrue("warp", channels.warpAmount in 0f..MAX_WARP)
                 }
             }
         }
+    }
+
+    @Test
+    fun `warp is strongest closed and gone once flat`() {
+        val closed = MotionChannelMapper.map(frame(0f, energy = 0f), MotionTuning.Balanced)
+        val open = MotionChannelMapper.map(frame(1f, energy = 0f), MotionTuning.Balanced)
+
+        assertEquals(MAX_WARP, closed.warpAmount, 0.001f)
+        assertEquals(0f, open.warpAmount, 0f)
+    }
+
+    @Test
+    fun `warp is position-driven, not movement-driven`() {
+        // Same regression class as the veil test above: a background held half-open must show a
+        // stable pinch, not one that depends on how fast the hand happened to be moving.
+        val still = MotionChannelMapper.map(frame(0.5f, energy = 0f), MotionTuning.Balanced)
+        val moving = MotionChannelMapper.map(frame(0.5f, energy = 1f), MotionTuning.Balanced)
+
+        assertEquals(still.warpAmount, moving.warpAmount, 0.001f)
+        assertTrue("half open should still show some pinch", still.warpAmount > 0f)
+    }
+
+    @Test
+    fun `the battery profile has no warp`() {
+        val channels = MotionChannelMapper.map(frame(0f, energy = 0f), MotionTuning.Battery)
+
+        assertEquals(0f, channels.warpAmount, 0f)
     }
 
     @Test

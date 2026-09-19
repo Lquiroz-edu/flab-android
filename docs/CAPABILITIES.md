@@ -13,6 +13,23 @@ Definition of Done tracker points at whenever an item is marked **Bounded by And
 - Provide motion, haptics, widgets, wallpapers and notifications owned by F/LAB.
 - Identify a Samsung One UI build through a public system feature.
 
+## Available by owning a rendering surface — no extra permission
+
+A live wallpaper (`WallpaperService`) needs nothing beyond what the OS itself enforces on the
+service (`BIND_WALLPAPER`, which only the system's wallpaper host holds) and the user choosing it as
+their wallpaper through the normal system picker. No runtime permission dialog, no entry on
+F/LAB Access.
+
+What that ownership buys, that `SYSTEM_ALERT_WINDOW`'s blur/dim cannot: **geometry**. Compositor
+blur composites *over* another window's pixels; it cannot bend them. A wallpaper is F/LAB's own
+surface, rendered pixel by pixel, so F/LAB can reshape it directly. `FoldWallpaperService` spends
+that on reproducing the effect analysed from Apple's iPhone Duo footage — the background pinches at
+the hinge (`FoldWarpMesh`, a `Canvas.drawBitmapMesh` displacement) in proportion to how closed the
+device is, with frosted-glass cards over it showing real device data.
+
+The boundary is the same shape as everywhere else in this file: this is F/LAB's own surface. It has
+nothing to say about Instagram's background, or any other app's.
+
 ## Available with `SYSTEM_ALERT_WINDOW` plus an accessibility service
 
 These are what **System effects** uses. Both are off until the user turns them on in F/LAB Access,

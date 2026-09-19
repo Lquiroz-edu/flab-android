@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The wallpaper picker's thumbnail: a simple hinge silhouette on the brand gradient. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    <path
+        android:fillColor="#0E1420"
+        android:pathData="M0,0h192v192h-192z" />
+    <path
+        android:fillColor="#3ED8E8"
+        android:fillAlpha="0.85"
+        android:pathData="M46,46h40v100h-40c-4.4,0 -8,-3.6 -8,-8v-84c0,-4.4 3.6,-8 8,-8z" />
+    <path
+        android:fillColor="#9B87F5"
+        android:fillAlpha="0.75"
+        android:pathData="M106,46h40c4.4,0 8,3.6 8,8v84c0,4.4 -3.6,8 -8,8h-40z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.25"
+        android:pathData="M92,50l4,92l4,-92z" />
+</vector>

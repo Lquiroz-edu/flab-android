@@ -244,6 +244,8 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
 
     fun appDetailsIntent(): Intent = SystemAccess.appDetailsIntent(getApplication())
 
+    fun liveWallpaperIntent(): Intent = SystemAccess.changeLiveWallpaperIntent(getApplication())
+
     fun completeOnboarding() {
         settings.setOnboardingComplete(true)
         _screen.value = FLabScreen.Home

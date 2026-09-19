@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import com.lquiroz.flab.motion.EvidenceSource
 import com.lquiroz.flab.motion.FoldMotionFrame
 import com.lquiroz.flab.motion.MotionChannelMapper
+import com.lquiroz.flab.motion.MotionChannels
 import com.lquiroz.flab.profiles.FLabProfile
+import com.lquiroz.flab.ui.components.FLabButton
 import com.lquiroz.flab.ui.components.FLabCard
 import com.lquiroz.flab.ui.components.KeyValueRow
 import com.lquiroz.flab.ui.components.SectionLabel
@@ -58,6 +62,7 @@ fun FoldMotionScreen(
     progress: Float,
     onScrub: (Float) -> Unit,
     hasHingeSensor: Boolean,
+    onSetLiveWallpaper: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Energy is synthesised from the drag so the veil channels are visible while scrubbing. On the
@@ -115,6 +120,7 @@ fun FoldMotionScreen(
             KeyValueRow("Blur", "${channels.blurRadiusDp.roundToInt()} dp")
             KeyValueRow("Dim", channels.dimAlpha.percent())
             KeyValueRow("Depth", "${channels.elevationDp.roundToInt()} dp")
+            KeyValueRow("Hinge warp", (channels.warpAmount / MotionChannels.MAX_WARP).percent())
             Spacer(Modifier.height(10.dp))
             Text(
                 text = "Blur, dim and depth follow movement rather than position, so they read " +
@@ -144,6 +150,77 @@ fun FoldMotionScreen(
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = FLabColors.textSecondary,
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        FLabCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Fold Wallpaper")
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "The same hinge-follow, applied to your wallpaper instead of F/LAB's own " +
+                    "screens — the background bends at the hinge as you open the device, with " +
+                    "glass-style cards for time, battery and fold status. This is the one surface " +
+                    "F/LAB can treat outside its own window without an overlay: a live wallpaper " +
+                    "is F/LAB's own rendering, pixel for pixel.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = FLabColors.textSecondary,
+            )
+            Spacer(Modifier.height(16.dp))
+            WallpaperWarpPreview(channels.warpAmount)
+            Spacer(Modifier.height(16.dp))
+            FLabButton(
+                text = "Set as Live Wallpaper",
+                onClick = onSetLiveWallpaper,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * A compact stand-in for the wallpaper's hinge-pinch effect (DoD 11 applied to the new channel).
+ *
+ * The real effect is a bitmap-mesh warp drawn by `FoldWallpaperService`; reproducing that exact
+ * mesh in Compose just to preview it would duplicate the whole mechanism for a small card. This
+ * approximates the same read — content compressing toward the hinge as the device closes — with
+ * two simple gradient panels whose inner edges move together, which is enough to show the shape of
+ * the effect without pretending to be the pixel-identical result.
+ */
+@Composable
+private fun WallpaperWarpPreview(warpAmount: Float) {
+    val warpFraction = (warpAmount / MotionChannels.MAX_WARP).coerceIn(0f, 1f)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .clip(RoundedCornerShape(FLabTokens.RadiusControl))
+            .background(
+                Brush.linearGradient(
+                    listOf(Color(0xFF1B2333), Color(0xFF0E1420)),
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f - warpFraction * 0.32f)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width((4 + warpFraction * 20).dp)
+                    .background(Color.Black.copy(alpha = 0.15f + warpFraction * 0.25f)),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f - warpFraction * 0.32f)
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)),
             )
         }
     }

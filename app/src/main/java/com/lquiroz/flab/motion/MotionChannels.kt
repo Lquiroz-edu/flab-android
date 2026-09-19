@@ -19,9 +19,14 @@ package com.lquiroz.flab.motion
  * ### Channels that deliberately do not exist
  *
  * There is no seam, hinge line, crease mask, curtain or centre band channel, and there must never
- * be one. F/LAB's job is to make the fold less noticeable; anything drawn at the joint announces
- * exactly where the joint is. The same goes for a full-bleed opaque scrim: [dimAlpha] is capped
- * well below opacity so a transition can never present as a black flash.
+ * be one on F/LAB's own Compose surfaces. [warpAmount] looks like it breaks that rule and does not:
+ * it exists only for a surface that owns a single continuous background image top to bottom — a
+ * wallpaper — where bending that one image at the hinge is what makes the fold *less* visible, the
+ * same argument in reverse. Applied to a layered Compose screen it would do nothing useful, which
+ * is why no Compose surface reads it.
+ *
+ * The same goes for a full-bleed opaque scrim: [dimAlpha] is capped well below opacity so a
+ * transition can never present as a black flash.
  */
 data class MotionChannels(
     val contentScale: Float,
@@ -31,6 +36,13 @@ data class MotionChannels(
     val elevationDp: Float,
     val translationYDp: Float,
     val expansion: Float,
+    /**
+     * How strongly a continuous background should pinch at the hinge, `0f` (flat, no pinch) to
+     * [MAX_WARP]. Position-driven, like [contentScale]: a device held half-open shows a stable
+     * pinch rather than one that fades based on how fast the hand is moving. Consumed by
+     * `FoldWallpaperService`'s bitmap-mesh warp; meaningless to anything else.
+     */
+    val warpAmount: Float = 0f,
 ) {
     /** True when this frame is visually identical to doing nothing, so the layer can be skipped. */
     val isNeutral: Boolean
@@ -40,7 +52,8 @@ data class MotionChannels(
             dimAlpha == 0f &&
             elevationDp == 0f &&
             translationYDp == 0f &&
-            expansion == 1f
+            expansion == 1f &&
+            warpAmount == 0f
 
     companion object {
         val Neutral = MotionChannels(
@@ -51,6 +64,7 @@ data class MotionChannels(
             elevationDp = 0f,
             translationYDp = 0f,
             expansion = 1f,
+            warpAmount = 0f,
         )
 
         /** Hard ceilings. Exceeding any of these is a DoD 30 "visible artifact" bug, not a taste call. */
@@ -60,6 +74,14 @@ data class MotionChannels(
         const val MIN_CONTENT_SCALE = 0.93f
         const val MAX_ELEVATION_DP = 14f
         const val MAX_TRANSLATION_DP = 10f
+
+        /**
+         * The pinch at a fully closed device, as a fraction of the image's half-width that the
+         * hinge column is allowed to swallow. Kept well short of 1f: a pinch that reaches the edges
+         * of the image would fold content from the *other* half on top of itself, which reads as a
+         * glitch rather than as paper bending.
+         */
+        const val MAX_WARP = 0.62f
     }
 }
 
@@ -97,6 +119,9 @@ object MotionChannelMapper {
             translationYDp = MotionChannels.MAX_TRANSLATION_DP *
                 (1f - easeInOutCubic(progress)) * tuning.offsetIntensity,
             expansion = lerp(MIN_EXPANSION, 1f, 1f - (1f - progress) * tuning.expansionIntensity),
+            // Position-driven, same family as scale and offset: strongest closed, gone once flat.
+            warpAmount = MotionChannels.MAX_WARP *
+                (1f - easeInOutCubic(progress)) * tuning.warpIntensity,
         )
     }
 

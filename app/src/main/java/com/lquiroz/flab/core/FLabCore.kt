@@ -45,10 +45,13 @@ import kotlinx.coroutines.launch
  * this class (DoD 22, 25).
  *
  * The hinge sensor is the only high-rate source. By default it is registered only while a
- * transition is in flight and released when the interpolator settles. The one exception is
- * [setContinuousTracking], which the System effects service turns on: reacting to a fold while
- * F/LAB is not on screen requires *something* to be listening, and that is a real cost rather than
- * a free one. It is opt-in, tied to a visible notification, and released when the service stops.
+ * transition is in flight and released when the interpolator settles. The exception is
+ * [requestContinuousTracking]: reacting to a fold while F/LAB is not on screen — the System
+ * effects service, the Fold Wallpaper — requires *something* to be listening, and that is a real
+ * cost rather than a free one. It is opt-in, ref-counted by caller, and tracking only actually
+ * stops once every caller has released it — so the wallpaper being visible on the home screen
+ * cannot be starved of evidence just because System effects happened to switch off first, or the
+ * other way around.
  */
 class FLabCore(
     private val applicationContext: Context,
@@ -77,7 +80,14 @@ class FLabCore(
     private var attachedJob: Job? = null
     private var hingeJob: Job? = null
     private var configuration: FLabConfiguration = FLabConfiguration()
-    private var continuousTracking = false
+
+    /**
+     * Callers currently holding continuous tracking open, keyed by whatever object they identify
+     * themselves with. A set rather than a count so a caller that crashes without releasing cannot
+     * leave a phantom count above zero from a second `request` no one asked for — the same owner
+     * requesting twice is one entry, not two.
+     */
+    private val continuousTrackingOwners = mutableSetOf<Any>()
 
     val activeProfile: FLabProfile
         get() = FLabProfile.of(configuration.profileId)
@@ -138,11 +148,18 @@ class FLabCore(
 
     // ---------------------------------------------------------------- engine control
 
-    /** Kill switch (DoD 21): stop everything now and remember that choice. */
+    /**
+     * Kill switch (DoD 21): stop everything now and remember that choice.
+     *
+     * Clears every standing continuous-tracking request, not just the listener. A background
+     * consumer — System effects, Fold Wallpaper — does not get to keep the sensor alive through a
+     * kill switch by having asked before it was pressed; "instantly return to original behaviour"
+     * means the ledger is wiped too, not only its immediate effect.
+     */
     fun disable() {
         settings.setEnabled(false)
+        continuousTrackingOwners.clear()
         forceStopHingeTracking()
-        continuousTracking = false
         _state.value = _state.value.copy(engineStatus = EngineStatus.Disabled)
     }
 
@@ -152,12 +169,16 @@ class FLabCore(
             engineStatus = EngineStatus.Active,
             sessionStartedAtMillis = clock(),
         )
+        // A consumer may have requested continuous tracking while the engine was off and been
+        // silently refused by startHingeTracking()'s own gate; re-enabling is the moment to honour
+        // that standing request rather than waiting for the next unrelated posture event.
+        reevaluateContinuousTracking()
     }
 
     /** Reset F/LAB (DoD 21): clear F/LAB's own configuration and return to first-run defaults. */
     fun reset() {
         settings.reset()
-        continuousTracking = false
+        continuousTrackingOwners.clear()
         forceStopHingeTracking()
         _state.value = FLabState()
     }
@@ -192,6 +213,7 @@ class FLabCore(
         _state.value = current.copy(
             moduleStates = current.moduleStates + (module to breaker.reset(moduleState)),
         )
+        if (module == ModuleId.FoldMotion) reevaluateContinuousTracking()
     }
 
     fun refreshPowerPosture() {
@@ -208,7 +230,13 @@ class FLabCore(
         }
         if (_state.value.power == posture) return
         _state.value = _state.value.copy(power = posture)
-        if (posture == PowerPosture.Restricted) forceStopHingeTracking()
+        if (posture == PowerPosture.Restricted) {
+            forceStopHingeTracking()
+        } else {
+            // Recovering from a thermal restriction is the moment to resume any standing request
+            // that the restriction had force-stopped out from under its owner.
+            reevaluateContinuousTracking()
+        }
     }
 
     // ---------------------------------------------------------------- internals
@@ -229,8 +257,13 @@ class FLabCore(
                 current.sessionStartedAtMillis
             },
         )
-        if (!config.enabled) {
-            continuousTracking = false
+        // Symmetric on purpose: this runs on every settings change, not only enable/disable, so a
+        // standing continuous-tracking request is resumed the moment any gate it depends on —
+        // engine enabled, or the Fold Motion module specifically — opens back up, rather than
+        // waiting for whichever caller happens to notice and ask again.
+        if (config.enabled) {
+            reevaluateContinuousTracking()
+        } else {
             forceStopHingeTracking()
         }
     }
@@ -309,31 +342,57 @@ class FLabCore(
     }
 
     /**
-     * Keeps the hinge listener registered even when motion settles.
+     * Keeps the hinge listener registered even when motion settles, for as long as [owner] holds
+     * the request.
      *
-     * Set by the System effects service. Without it the two renderers fight: the in-app one calls
-     * [stopHingeTracking] as soon as motion settles, which would tear down the very source the
-     * background service depends on to notice the *next* fold.
+     * Without this, the two background renderers — System effects, Fold Wallpaper — would fight
+     * the in-app path: it calls [stopHingeTracking] as soon as motion settles, which would tear
+     * down the very source either of them depends on to notice the *next* fold. Ref-counted by
+     * owner rather than a single flag, so one background consumer switching off cannot silently
+     * strand another that is still holding a request — the wallpaper visible on the home screen and
+     * the System effects overlay are entirely independent callers and must not be able to cancel
+     * each other.
      *
      * This is the honest cost of reacting while F/LAB is not on screen — something has to be
      * listening. The hinge sensor is the cheapest continuous source available and is what the
-     * platform itself uses for posture, but it is not free, which is why it is opt-in, tied to a
-     * visible notification, and released the moment the service stops.
+     * platform itself uses for posture, but it is not free, which is why it is opt-in, per-caller,
+     * and released the moment every caller that asked for it has let go.
      */
-    fun setContinuousTracking(enabled: Boolean) {
-        continuousTracking = enabled
-        if (enabled) startHingeTracking() else stopHingeTracking()
+    fun requestContinuousTracking(owner: Any) {
+        continuousTrackingOwners += owner
+        reevaluateContinuousTracking()
+    }
+
+    /** Releases [owner]'s hold on continuous tracking. The listener stays up for any other holder. */
+    fun releaseContinuousTracking(owner: Any) {
+        continuousTrackingOwners -= owner
+        if (continuousTrackingOwners.isEmpty()) forceStopHingeTracking()
     }
 
     /**
-     * Releases the hinge listener. Called when motion settles, on detach, and on disable.
+     * Releases the hinge listener. Called when in-app motion settles, and on detach.
      *
-     * A no-op while [setContinuousTracking] is on, so a settling animation cannot silently disable
-     * the background effect.
+     * A no-op while any [requestContinuousTracking] caller still holds the request, so a settling
+     * animation in F/LAB's own UI cannot silently disable a background effect that needs the sensor
+     * to keep running.
      */
     fun stopHingeTracking() {
-        if (continuousTracking) return
+        if (continuousTrackingOwners.isNotEmpty()) return
         forceStopHingeTracking()
+    }
+
+    /**
+     * Re-attempts hinge tracking for any standing continuous-tracking request.
+     *
+     * Safe to call from anywhere, at any time: [startHingeTracking]'s own gates (module enabled,
+     * engine active, sensor present) decide whether this does anything. Called after every state
+     * transition that could open one of those gates back up — enabling F/LAB, clearing a tripped
+     * breaker, recovering from a thermal restriction — so a request made while a gate was closed is
+     * honoured as soon as it opens, instead of waiting for an unrelated posture event to happen to
+     * pass through the same code path.
+     */
+    private fun reevaluateContinuousTracking() {
+        if (continuousTrackingOwners.isNotEmpty()) startHingeTracking()
     }
 
     private fun forceStopHingeTracking() {

@@ -84,6 +84,25 @@
                 android:resource="@xml/flab_accessibility" />
         </service>
 
+        <!--
+            android:permission="BIND_WALLPAPER" is what actually protects this, not the exported
+            flag: only the system's wallpaper host holds that permission, so no other app can bind
+            to F/LAB's engine regardless of exported="true". This is the standard, required pattern
+            for a WallpaperService — Android will not offer it in the wallpaper picker without it.
+        -->
+        <service
+            android:name=".system.FoldWallpaperService"
+            android:exported="true"
+            android:label="@string/wallpaper_label"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/fold_wallpaper" />
+        </service>
+
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

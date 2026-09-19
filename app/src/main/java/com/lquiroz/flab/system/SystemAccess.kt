@@ -1,5 +1,6 @@
 package com.lquiroz.flab.system
 
+import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -33,6 +34,20 @@ object SystemAccess {
         Intent(
             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             "package:${context.packageName}".toUri(),
+        )
+
+    /**
+     * Opens the system's live-wallpaper preview pre-selected to [FoldWallpaperService].
+     *
+     * `EXTRA_LIVE_WALLPAPER_COMPONENT` is honoured by AOSP's own picker and by One UI's; nothing
+     * about it is Samsung-specific. If a launcher does not support it, the intent still resolves
+     * to a picker the user can navigate manually, and the caller (`MainActivity.openSettings`)
+     * already wraps every settings intent in `runCatching`.
+     */
+    fun changeLiveWallpaperIntent(context: Context): Intent =
+        Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).putExtra(
+            WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
+            ComponentName(context, FoldWallpaperService::class.java),
         )
 
     /**

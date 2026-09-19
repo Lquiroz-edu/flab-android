@@ -93,7 +93,7 @@ class FLabOverlayService : Service() {
         loopJob?.cancel()
         // Releases the hinge listener the service asked to keep alive. Skipping this would leave
         // the sensor registered for the rest of the process after the service stopped.
-        runCatching { app.core.setContinuousTracking(false) }
+        runCatching { app.core.releaseContinuousTracking(this) }
         overlay.release()
         scope.cancel()
         running.value = false
@@ -108,7 +108,7 @@ class FLabOverlayService : Service() {
         // an Activity is attached and stops as soon as motion settles — but reacting to a fold
         // *while F/LAB is not on screen* is the entire point here, so the service asks the Core to
         // keep the listener registered for as long as it runs, and releases it in onDestroy.
-        core.setContinuousTracking(true)
+        core.requestContinuousTracking(this)
 
         scope.launch {
             core.state.collect { state ->

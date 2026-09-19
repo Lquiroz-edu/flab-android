@@ -27,6 +27,24 @@ rather than Bounded, and DoD 31's click-through requirement is now load-bearing 
 recorded for later. What it does **not** move is anything requiring another app to be restyled —
 see the constraint below, which has been updated rather than removed.
 
+## Update: Fold Wallpaper
+
+F/LAB also ships a live wallpaper (`system/FoldWallpaperService.kt`) that reproduces the effect
+analysed from Apple's iPhone Duo footage: the background is one continuous image, geometrically
+pinched at the hinge in proportion to how closed the device is (`FoldWarpMesh`, a `Canvas.drawBitmapMesh`
+displacement, not a blur), with frosted-glass cards showing real device data — time, battery, fold
+posture — over a brand-generated background.
+
+This exists because System effects' blur/dim cannot bend geometry, only composite over it; a live
+wallpaper is a surface F/LAB actually renders, pixel by pixel, so the one thing that surface
+category can do — reshape its own content — becomes available. It is still bounded exactly where
+System effects is: it is F/LAB's own surface, not Instagram's or anyone else's.
+
+Reading the hinge sensor for both System effects and Fold Wallpaper at once required turning
+`FLabCore`'s continuous-tracking flag into a ref-counted, per-caller request
+(`requestContinuousTracking`/`releaseContinuousTracking`), so one background consumer switching off
+cannot silently starve the other.
+
 ## The honest constraint, stated once
 
 Several sections of the DoD ask F/LAB to change how **other apps** look — to extend Instagram's
@@ -278,6 +296,16 @@ Diagnostics.
 `system/FLabAccessibilityService.kt`. Blur-behind with a documented dim fallback when cross-window
 blur is unavailable; a foreground service whose notification is deliberate; frame loop stops and
 the overlay's surface is released the moment motion settles.
+
+### 44b. Fold Wallpaper — **Done**
+`system/FoldWarpMesh.kt` (pure, tested), `system/FoldWallpaperLayout.kt` (pure, tested),
+`system/FoldWallpaperService.kt`. The hinge-pinch geometry, the card layout and the card content
+model are unit-tested; the Canvas/Bitmap drawing itself is Android-framework code and is not, in
+line with the split the rest of the project already uses. Battery and clock are read once via a
+registered receiver and a throttled tick respectively, cached, and never touched from the per-frame
+draw path — a live wallpaper redraws at up to the panel's refresh rate during a transition, so a
+Binder round-trip or a `SimpleDateFormat` allocation per frame there would be a real, measurable
+cost, not a rounding error.
 
 ### 44. Minimum modules — **Structured**
 All four exist as modules with real policy and real tests. Fold Motion is fully live inside F/LAB;

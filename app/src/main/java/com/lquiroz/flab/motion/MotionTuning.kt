@@ -43,6 +43,17 @@ data class MotionTuning(
     val depthIntensity: Float = 1f,
     val offsetIntensity: Float = 1f,
     val expansionIntensity: Float = 1f,
+    /**
+     * How strongly the hinge pinches a continuous background as the device opens (Fold Wallpaper).
+     *
+     * Position-driven like [scaleIntensity], not movement-driven like the veil channels: a
+     * background held at half-open should show a stable pinch, not one that fades in and out with
+     * the hand's speed. Unlike every other channel here, this one is meaningless anywhere but a
+     * wallpaper — F/LAB's Compose surfaces do not have a single continuous background image behind
+     * the hinge, so `MotionChannelMapper` computes it regardless and callers that cannot use it
+     * simply ignore it.
+     */
+    val warpIntensity: Float = 1f,
 ) {
     /** True when this tuning cannot produce any visible change and the engine can stay parked. */
     val isInert: Boolean
@@ -51,7 +62,8 @@ data class MotionTuning(
             dimIntensity == 0f &&
             depthIntensity == 0f &&
             offsetIntensity == 0f &&
-            expansionIntensity == 0f
+            expansionIntensity == 0f &&
+            warpIntensity == 0f
 
     companion object {
         /** Default. Visible, but never showy. */
@@ -70,6 +82,7 @@ data class MotionTuning(
             depthIntensity = 1f,
             offsetIntensity = 1f,
             expansionIntensity = 1f,
+            warpIntensity = 1f,
         )
 
         /** Discreet. Position-driven channels only, no veil, no overshoot. */
@@ -85,6 +98,7 @@ data class MotionTuning(
             depthIntensity = 0.3f,
             offsetIntensity = 0.4f,
             expansionIntensity = 0.6f,
+            warpIntensity = 0.5f,
         )
 
         /** Minimum intervention. The engine still tracks state, it just does not paint. */
@@ -100,6 +114,7 @@ data class MotionTuning(
             depthIntensity = 0f,
             offsetIntensity = 0f,
             expansionIntensity = 0f,
+            warpIntensity = 0f,
         )
     }
 }

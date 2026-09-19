@@ -155,6 +155,7 @@ private fun ScreenContent(
                     progress = previewProgress,
                     onScrub = viewModel::scrubPreview,
                     hasHingeSensor = ui.device?.hasHingeSensor == true,
+                    onSetLiveWallpaper = { onOpenSettings(viewModel.liveWallpaperIntent()) },
                 )
 
                 FLabScreen.Apps -> AppsScreen(
