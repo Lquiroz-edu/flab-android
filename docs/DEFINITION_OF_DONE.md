@@ -142,8 +142,10 @@ grey and every grey pair and asserts there is no third outcome between "legible"
 Same strategy set and same fallback. Gesture-versus-button conservatism is not yet implemented.
 
 ### 10. F/LAB App — **Done**
-`ui/screens/HomeScreen.kt` matches the sketched layout: device, the four modules, apps,
-performance, experiments — each a state with a health dot, not a settings row.
+`ui/screens/HomeScreen.kt` is a hub, not a settings list: a device hero card, three icon tiles
+grouping Fold Motion/Continuity, Immersive/System effects and Apps by what they do, a Performance
+card, and Experiments/Diagnostics as compact chips. A tile's subtitle explains its own state (DoD
+43) — the per-switch detail lives one tap deeper, on the screen the tile opens.
 
 ### 11. Live Preview — **Done**
 `ui/screens/FoldMotionScreen.kt`. The scrubber feeds the same `MotionChannelMapper` at the same

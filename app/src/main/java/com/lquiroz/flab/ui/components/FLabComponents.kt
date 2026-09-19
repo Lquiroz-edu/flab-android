@@ -307,6 +307,63 @@ fun FLabButton(
     }
 }
 
+/**
+ * A friendly, icon-led entry point into a group of features — a hub tile Home reaches for instead
+ * of one settings row per switch, so the app's front page reads as a product rather than a panel
+ * of toggles. The detail (what is on, what needs attention) still lives one tap deeper, on the
+ * screen the tile opens — only the entry point changed, not DoD 40's "detail lives one tap deeper".
+ */
+@Composable
+fun FeatureTile(
+    title: String,
+    subtitle: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: @Composable (Color) -> Unit,
+) {
+    FLabCard(modifier = modifier, onClick = onClick, contentPadding = 16) {
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(accent.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon(accent)
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = FLabColors.textSecondary,
+        )
+        Spacer(Modifier.height(10.dp))
+        TileArrow()
+    }
+}
+
+/** The small "this opens something" affordance a [FeatureTile] or a hub row ends on. */
+@Composable
+fun TileArrow(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(FLabTokens.RadiusPill))
+            .background(FLabColors.outline),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("→", style = MaterialTheme.typography.bodyMedium, color = FLabColors.textSecondary)
+    }
+}
+
 /** A labelled key/value line for dense surfaces like Diagnostics. */
 @Composable
 fun KeyValueRow(label: String, value: String, modifier: Modifier = Modifier) {

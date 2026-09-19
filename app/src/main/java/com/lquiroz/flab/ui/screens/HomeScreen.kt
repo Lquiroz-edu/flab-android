@@ -5,20 +5,28 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,17 +42,19 @@ import com.lquiroz.flab.ui.components.Dot
 import com.lquiroz.flab.ui.components.FLabButton
 import com.lquiroz.flab.ui.components.FLabCard
 import com.lquiroz.flab.ui.components.FLabGlassCard
+import com.lquiroz.flab.ui.components.FeatureTile
 import com.lquiroz.flab.ui.components.Pill
 import com.lquiroz.flab.ui.components.SectionLabel
-import com.lquiroz.flab.ui.components.StatusRow
+import com.lquiroz.flab.ui.components.TileArrow
 import com.lquiroz.flab.ui.theme.FLabColors
 
 /**
  * The control centre (DoD 10).
  *
- * Laid out to match the screen sketched in the Definition of Done — device, the four modules,
- * apps, performance, experiments — and to read as a product rather than a developer panel
- * (DoD 40): each row shows a state, not a switch, and the detail lives one tap deeper.
+ * A hub, not a settings panel (DoD 40): a hero card for the device and its overall health, three
+ * icon tiles grouping Fold Motion/Continuity, Immersive/System effects and Apps by what they do
+ * rather than one row per switch, and a Performance card below. Nothing here is a raw on/off row —
+ * a tile's subtitle explains its own state, and the detail one tap deeper on the screen it opens.
  *
  * The health line at the top is DoD 43: it says F/LAB Active when everything is running, Action
  * required when a permission is missing or the breaker has tripped, and always explains itself
@@ -107,22 +117,11 @@ fun HomeScreen(
             }
         }
 
-        if (wide) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    DeviceRow(ui)
-                    ModuleRows(ui, onNavigate)
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SummaryRows(ui, onNavigate)
-                }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DeviceRow(ui)
-                ModuleRows(ui, onNavigate)
-                SummaryRows(ui, onNavigate)
-            }
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            HeroCard(ui, onNavigate)
+            FeatureTiles(ui, wide, onNavigate)
+            PerformanceCard(ui, onNavigate)
+            SecondaryLinks(ui, onNavigate)
         }
     }
 }
@@ -153,6 +152,175 @@ private fun HomeHeader(ui: FLabUiState, onToggleEngine: (Boolean) -> Unit) {
             accent = if (ui.configuration.enabled) MaterialTheme.colorScheme.primary else FLabColors.textSecondary,
             filled = ui.configuration.enabled,
             onClick = { onToggleEngine(!ui.configuration.enabled) },
+        )
+    }
+}
+
+/**
+ * The device hero: what F/LAB is running on, and one sentence on how it is doing right now —
+ * Home's front page rather than a "Device" settings row.
+ */
+@Composable
+private fun HeroCard(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
+    val device = ui.device
+    FLabCard(Modifier.fillMaxWidth(), contentPadding = 22) {
+        SectionLabel("Your Fold")
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = device?.displayName ?: "Detecting your device",
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = when {
+                device == null -> "Reading device information."
+                !ui.configuration.enabled -> "Turn F/LAB on to start following the hinge."
+                device.isFoldable && device.hasHingeSensor ->
+                    "Continuity, motion and immersive behaviour are active."
+                device.isFoldable -> "Foldable detected, posture events only — motion will be coarser."
+                else -> "No hinge reported — Fold Motion has nothing to follow."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = FLabColors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+        Pill(
+            text = if (ui.needsAttention) "Action required" else "All systems working",
+            accent = if (ui.needsAttention) FLabColors.warning else FLabColors.ok,
+            onClick = { onNavigate(FLabScreen.Diagnostics) },
+        )
+    }
+}
+
+/**
+ * The three hub tiles: Fold (motion + continuity), Experience (immersive + the system-wide
+ * effect) and Apps (per-app treatment) — the groupings DoD 10 lists, read as a product rather than
+ * four separate module switches.
+ */
+@Composable
+private fun FeatureTiles(ui: FLabUiState, wide: Boolean, onNavigate: (FLabScreen) -> Unit) {
+    val foldRunning = ui.state.isModuleRunning(ModuleId.FoldMotion)
+    val foldAccent = when {
+        !ui.configuration.enabled -> FLabColors.textSecondary
+        foldRunning -> MaterialTheme.colorScheme.primary
+        else -> FLabColors.warning
+    }
+    val foldSubtitle = when {
+        !ui.configuration.enabled -> "Turn F/LAB on to enable this."
+        foldRunning -> "Following the hinge."
+        else -> ui.state.moduleStates[ModuleId.FoldMotion]?.unavailableReason
+            ?: "Hinge motion and continuity."
+    }
+
+    val effects = ui.systemEffects
+    val experienceAccent = when {
+        !effects.enabled -> FLabColors.textSecondary
+        !effects.canRun -> FLabColors.warning
+        else -> MaterialTheme.colorScheme.secondary
+    }
+    val experienceSubtitle = when {
+        !effects.enabled -> "Immersive mode and system effects."
+        !effects.canRun -> "Needs: ${effects.missing.joinToString(" and ")}"
+        else -> "Active across the system."
+    }
+
+    val strongest = ui.appProfiles.firstOrNull { it.immersive == TreatmentMode.On }
+    val appsSubtitle = strongest?.let { "${it.displayName} has the strongest treatment." }
+        ?: "${ui.configuredAppCount} apps configured."
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(if (wide) 16.dp else 12.dp),
+    ) {
+        FeatureTile(
+            title = "Fold",
+            subtitle = foldSubtitle,
+            accent = foldAccent,
+            onClick = { onNavigate(FLabScreen.FoldMotion) },
+            modifier = Modifier.weight(1f),
+        ) { tint -> FoldGlyphIcon(tint) }
+        FeatureTile(
+            title = "Experience",
+            subtitle = experienceSubtitle,
+            accent = experienceAccent,
+            onClick = { onNavigate(FLabScreen.Access) },
+            modifier = Modifier.weight(1f),
+        ) { tint -> OverlapGlyphIcon(tint) }
+        FeatureTile(
+            title = "Apps",
+            subtitle = appsSubtitle,
+            accent = MaterialTheme.colorScheme.secondary,
+            onClick = { onNavigate(FLabScreen.Apps) },
+            modifier = Modifier.weight(1f),
+        ) { tint -> GridGlyphIcon(tint) }
+    }
+}
+
+/** The performance mode as one row-card, matching the tiles' "state explains itself" reading. */
+@Composable
+private fun PerformanceCard(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
+    val accent = when (ui.state.power) {
+        PowerPosture.Normal -> FLabColors.ok
+        PowerPosture.Conserving -> FLabColors.warning
+        PowerPosture.Restricted -> FLabColors.danger
+    }
+    val detail = when (ui.state.power) {
+        PowerPosture.Normal -> ui.profile.id.summary
+        PowerPosture.Conserving -> "The device asked F/LAB to conserve power"
+        PowerPosture.Restricted -> "Paused while the device cools down"
+    }
+    FLabCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onNavigate(FLabScreen.Profiles) },
+        contentPadding = 16,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accent.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                BarsGlyphIcon(accent)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Performance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = " · ${ui.profile.id.displayName}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = accent,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = FLabColors.textSecondary)
+            }
+            Spacer(Modifier.width(12.dp))
+            TileArrow()
+        }
+    }
+}
+
+/** The less central screens — opt-in and support features — as compact chips, not full rows. */
+@Composable
+private fun SecondaryLinks(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Pill(
+            text = if (ui.configuration.experimentsEnabled) "Experiments · On" else "Experiments",
+            accent = if (ui.configuration.experimentsEnabled) FLabColors.warning else FLabColors.textSecondary,
+            onClick = { onNavigate(FLabScreen.Experiments) },
+        )
+        Pill(
+            text = "Diagnostics",
+            accent = FLabColors.textSecondary,
+            onClick = { onNavigate(FLabScreen.Diagnostics) },
         )
     }
 }
@@ -264,140 +432,81 @@ private fun AttentionCard(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
     }
 }
 
+/** Two rounded panels side by side — a fold, open. */
 @Composable
-private fun DeviceRow(ui: FLabUiState) {
-    val device = ui.device
-    StatusRow(
-        title = "Device",
-        value = device?.displayName ?: "Detecting",
-        accent = MaterialTheme.colorScheme.onSurface,
-        detail = buildString {
-            append(
-                when {
-                    device == null -> "Reading device information"
-                    device.isFoldable && device.hasHingeSensor -> "Foldable, continuous hinge angle"
-                    device.isFoldable -> "Foldable, posture events only"
-                    else -> "No hinge reported — Fold Motion has nothing to follow"
-                },
+private fun FoldGlyphIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(22.dp)) {
+        val gap = size.width * 0.16f
+        val panelWidth = (size.width - gap) / 2f
+        val corner = CornerRadius(size.width * 0.16f)
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(0f, 0f),
+            size = Size(panelWidth, size.height),
+            cornerRadius = corner,
+        )
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(panelWidth + gap, 0f),
+            size = Size(panelWidth, size.height),
+            cornerRadius = corner,
+        )
+    }
+}
+
+/** Two overlapping circles — the immersive layer meeting the system underneath it. */
+@Composable
+private fun OverlapGlyphIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(22.dp)) {
+        val radius = size.width * 0.34f
+        drawCircle(
+            color = tint.copy(alpha = 0.55f),
+            radius = radius,
+            center = Offset(size.width * 0.40f, size.height * 0.5f),
+        )
+        drawCircle(
+            color = tint,
+            radius = radius,
+            center = Offset(size.width * 0.62f, size.height * 0.5f),
+        )
+    }
+}
+
+/** A 2×2 grid of rounded squares — apps, individually treated. */
+@Composable
+private fun GridGlyphIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(22.dp)) {
+        val cell = size.width * 0.40f
+        val gap = size.width * 0.20f
+        val corner = CornerRadius(size.width * 0.10f)
+        for (row in 0..1) {
+            for (col in 0..1) {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(col * (cell + gap), row * (cell + gap)),
+                    size = Size(cell, cell),
+                    cornerRadius = corner,
+                )
+            }
+        }
+    }
+}
+
+/** Three ascending bars — performance, at a glance. */
+@Composable
+private fun BarsGlyphIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(22.dp)) {
+        val barWidth = size.width * 0.22f
+        val gap = size.width * 0.12f
+        val corner = CornerRadius(barWidth * 0.3f)
+        listOf(0.45f, 0.7f, 1f).forEachIndexed { index, heightFraction ->
+            val barHeight = size.height * heightFraction
+            drawRoundRect(
+                color = tint,
+                topLeft = Offset(index * (barWidth + gap), size.height - barHeight),
+                size = Size(barWidth, barHeight),
+                cornerRadius = corner,
             )
-        },
-    )
-}
-
-@Composable
-private fun ModuleRows(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
-    ModuleId.entries.forEach { module ->
-        val runtime = ui.state.moduleStates[module]
-        val running = ui.state.isModuleRunning(module)
-        StatusRow(
-            title = module.displayName,
-            value = if (running) "ON" else "OFF",
-            accent = if (running) MaterialTheme.colorScheme.primary else FLabColors.textSecondary,
-            detail = when {
-                running && module == ModuleId.FoldMotion -> "Following the hinge"
-                running -> null
-                !ui.configuration.enabled -> "F/LAB is off"
-                ui.state.power != PowerPosture.Normal -> ui.state.power.label
-                else -> runtime?.unavailableReason
-            },
-            onClick = when (module) {
-                ModuleId.FoldMotion -> {
-                    { onNavigate(FLabScreen.FoldMotion) }
-                }
-                ModuleId.AppProfiles, ModuleId.Immersive -> {
-                    { onNavigate(FLabScreen.Apps) }
-                }
-                else -> null
-            },
-        )
-    }
-}
-
-/**
- * The system-wide effect (DoD 43).
- *
- * The row never shows a bare "On" when the effect cannot actually run: if a grant is missing it
- * names the missing one and routes to F/LAB Access, because a switch that reads On while nothing
- * happens is the worst thing this screen could say.
- */
-@Composable
-private fun SystemEffectsRow(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
-    val effects = ui.systemEffects
-    val value = when {
-        !effects.enabled -> "OFF"
-        !effects.canRun -> "Action required"
-        effects.serviceRunning -> "ON"
-        else -> "Starting"
-    }
-    val accent = when {
-        !effects.enabled -> FLabColors.textSecondary
-        !effects.canRun -> FLabColors.warning
-        else -> MaterialTheme.colorScheme.primary
-    }
-    StatusRow(
-        title = "System effects",
-        value = value,
-        accent = accent,
-        detail = when {
-            !effects.enabled -> "Apply fold motion outside F/LAB, across the system"
-            !effects.canRun -> "Needs: ${effects.missing.joinToString(" and ")}"
-            else -> effects.verdict.explanation
-        },
-        onClick = { onNavigate(FLabScreen.Access) },
-    )
-}
-
-@Composable
-private fun SummaryRows(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
-    SystemEffectsRow(ui, onNavigate)
-    StatusRow(
-        title = "Apps",
-        value = "${ui.configuredAppCount} configured",
-        accent = MaterialTheme.colorScheme.secondary,
-        detail = ui.appProfiles
-            .firstOrNull { it.immersive == TreatmentMode.On }
-            ?.let { "${it.displayName} has the strongest treatment" },
-        onClick = { onNavigate(FLabScreen.Apps) },
-    )
-    StatusRow(
-        title = "Performance",
-        value = ui.profile.id.displayName,
-        accent = when (ui.state.power) {
-            PowerPosture.Normal -> FLabColors.ok
-            PowerPosture.Conserving -> FLabColors.warning
-            PowerPosture.Restricted -> FLabColors.danger
-        },
-        detail = when (ui.state.power) {
-            PowerPosture.Normal -> ui.profile.id.summary
-            PowerPosture.Conserving -> "The device asked F/LAB to conserve power"
-            PowerPosture.Restricted -> "Paused while the device cools down"
-        },
-        onClick = { onNavigate(FLabScreen.Profiles) },
-    )
-    StatusRow(
-        title = "Experiments",
-        value = if (ui.configuration.experimentsEnabled) "Enabled" else "Off",
-        accent = if (ui.configuration.experimentsEnabled) FLabColors.warning else FLabColors.textSecondary,
-        detail = "Features that are not reliable yet",
-        onClick = { onNavigate(FLabScreen.Experiments) },
-    )
-    StatusRow(
-        title = "Diagnostics",
-        value = "Open",
-        accent = FLabColors.textSecondary,
-        detail = "Device, modules, permissions, last error",
-        onClick = { onNavigate(FLabScreen.Diagnostics) },
-    )
-    Spacer(Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        FLabButton(
-            text = "F/LAB Access",
-            onClick = { onNavigate(FLabScreen.Access) },
-            prominent = false,
-            modifier = Modifier.weight(1f),
-        )
+        }
     }
 }
