@@ -18,6 +18,8 @@ data class FLabConfiguration(
     val onboardingComplete: Boolean = false,
     val profileId: ProfileId = ProfileId.Balanced,
     val experimentsEnabled: Boolean = false,
+    /** The system-wide overlay effect. Off until the user turns it on deliberately. */
+    val systemEffectsEnabled: Boolean = false,
     val moduleEnabled: Map<ModuleId, Boolean> = ModuleId.entries.associateWith { true },
     val appOverrides: List<AppProfile> = emptyList(),
 )
@@ -44,6 +46,7 @@ class FLabSettings(context: Context) {
         onboardingComplete = prefs.getBoolean(KEY_ONBOARDING, false),
         profileId = readProfile(),
         experimentsEnabled = prefs.getBoolean(KEY_EXPERIMENTS, false),
+        systemEffectsEnabled = prefs.getBoolean(KEY_SYSTEM_EFFECTS, false),
         moduleEnabled = ModuleId.entries.associateWith {
             prefs.getBoolean(moduleKey(it), true)
         },
@@ -69,6 +72,9 @@ class FLabSettings(context: Context) {
 
     fun setExperimentsEnabled(enabled: Boolean) =
         prefs.edit { putBoolean(KEY_EXPERIMENTS, enabled) }
+
+    fun setSystemEffectsEnabled(enabled: Boolean) =
+        prefs.edit { putBoolean(KEY_SYSTEM_EFFECTS, enabled) }
 
     fun setModuleEnabled(module: ModuleId, enabled: Boolean) =
         prefs.edit { putBoolean(moduleKey(module), enabled) }
@@ -128,6 +134,7 @@ class FLabSettings(context: Context) {
         const val KEY_ONBOARDING = "onboarding_complete"
         const val KEY_PROFILE = "profile"
         const val KEY_EXPERIMENTS = "experiments_enabled"
+        const val KEY_SYSTEM_EFFECTS = "system_effects_enabled"
         const val KEY_OVERRIDES = "app_overrides"
         const val KEY_MODULE_PREFIX = "module_"
         const val SEPARATOR = '|'

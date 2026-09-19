@@ -125,6 +125,34 @@ fun DiagnosticsScreen(
 
         Spacer(Modifier.height(12.dp))
 
+        snapshot.systemEffects?.let { effects ->
+            FLabCard(Modifier.fillMaxWidth()) {
+                SectionLabel("System effects")
+                Spacer(Modifier.height(10.dp))
+                KeyValueRow("Enabled", effects.enabled.yesNo())
+                KeyValueRow("Service", if (effects.serviceRunning) "Running" else "Stopped")
+                KeyValueRow(
+                    "Display over apps",
+                    if (effects.hasOverlayPermission) "Granted" else "Not granted",
+                )
+                KeyValueRow(
+                    "App awareness",
+                    if (effects.accessibilityEnabled) "Granted" else "Not granted",
+                )
+                KeyValueRow(
+                    "Blur behind",
+                    if (effects.blurSupported) "Supported" else "Unavailable — using dim",
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Last decision: ${effects.verdictExplanation}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FLabColors.textSecondary,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
         FLabCard(Modifier.fillMaxWidth()) {
             SectionLabel("Permissions")
             Spacer(Modifier.height(10.dp))

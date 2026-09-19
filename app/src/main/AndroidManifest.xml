@@ -1,18 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--
-        Boot persistence (DoD 19): F/LAB must come back the way it was left without being reopened.
-
-        Note what is absent. There is no SYSTEM_ALERT_WINDOW, no accessibility service, no
-        QUERY_ALL_PACKAGES and no foreground service type. The four v1 modules run entirely within
-        the normal app sandbox, and anything that would need more lives in F/LAB Experiments
-        (DoD 15, 16, 17).
-    -->
+    <!-- Boot persistence (DoD 19): F/LAB comes back the way it was left, without being reopened. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Fold Motion follows the hinge where there is one, and degrades gracefully where there is not. -->
+    <!--
+        Required by the foreground service that hosts the system-wide effect. The notification is
+        not incidental: something that can draw over other apps should be impossible to forget is
+        running, and it carries a one-tap stop.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!--
+        "Display over other apps", for the click-through blur/dim window. The window is created with
+        FLAG_NOT_TOUCHABLE and never takes input; see FoldOverlayWindow.
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!--
+        Still absent, and still on purpose: no QUERY_ALL_PACKAGES, no screen capture, no network.
+        F/LAB reads the foreground package through its accessibility service and nothing else, so it
+        has no way to enumerate what is installed and nowhere to send it if it could.
+    -->
+
+    <!-- Fold Motion follows the hinge where there is one, and degrades where there is not. -->
     <uses-feature
         android:name="android.hardware.sensor.hinge_angle"
         android:required="false" />
@@ -38,6 +51,38 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            specialUse because no predefined foreground service type fits: this is neither media,
+            nor location, nor sync. It reacts to the hinge while F/LAB is not the app on screen,
+            which is the only way the effect can exist at all.
+        -->
+        <service
+            android:name=".system.FLabOverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Applies a fold-driven visual effect over the system while the device is being opened or closed." />
+        </service>
+
+        <!--
+            Reads one thing: the package name of the window in front, so the overlay can refuse to
+            draw over a protected app. The service config requests neither canRetrieveWindowContent
+            nor key-event filtering, so the platform never hands it screen content at all.
+        -->
+        <service
+            android:name=".system.FLabAccessibilityService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/flab_accessibility" />
+        </service>
 
         <receiver
             android:name=".BootReceiver"

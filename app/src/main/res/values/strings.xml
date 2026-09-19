@@ -2,4 +2,13 @@
     <string name="app_name">F/LAB</string>
     <string name="debug_report_subject">F/LAB debug report</string>
     <string name="debug_report_share">Share debug report</string>
+
+    <string name="accessibility_summary">Reads only the package name of the app in front.</string>
+    <string name="accessibility_description">F/LAB uses this to know which app is in front, so the system-wide fold effect can stand down over banking apps, the camera and other protected surfaces. It reads only the package name. It does not read screen contents, text, or anything you type.</string>
+
+    <string name="overlay_channel_name">System effects</string>
+    <string name="overlay_channel_description">Shown while F/LAB can apply its fold effect outside its own app.</string>
+    <string name="overlay_notification_title">F/LAB system effects</string>
+    <string name="overlay_notification_text">Fold motion applies across the system. Tap to open, or stop it here.</string>
+    <string name="overlay_notification_stop">Stop</string>
 </resources>

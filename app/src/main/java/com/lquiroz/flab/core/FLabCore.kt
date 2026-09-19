@@ -41,9 +41,14 @@ import kotlinx.coroutines.launch
  *
  * ### Cost
  *
- * Every subscription here is event-driven. The hinge sensor is the only high-rate source and it is
- * registered only while a transition is in flight; when the interpolator settles, the listener
- * goes away. There is no timer, no poll and no wake lock anywhere in this class (DoD 22, 25).
+ * Every subscription here is event-driven. There is no timer, no poll and no wake lock anywhere in
+ * this class (DoD 22, 25).
+ *
+ * The hinge sensor is the only high-rate source. By default it is registered only while a
+ * transition is in flight and released when the interpolator settles. The one exception is
+ * [setContinuousTracking], which the System effects service turns on: reacting to a fold while
+ * F/LAB is not on screen requires *something* to be listening, and that is a real cost rather than
+ * a free one. It is opt-in, tied to a visible notification, and released when the service stops.
  */
 class FLabCore(
     private val applicationContext: Context,
@@ -72,6 +77,7 @@ class FLabCore(
     private var attachedJob: Job? = null
     private var hingeJob: Job? = null
     private var configuration: FLabConfiguration = FLabConfiguration()
+    private var continuousTracking = false
 
     val activeProfile: FLabProfile
         get() = FLabProfile.of(configuration.profileId)
@@ -135,7 +141,8 @@ class FLabCore(
     /** Kill switch (DoD 21): stop everything now and remember that choice. */
     fun disable() {
         settings.setEnabled(false)
-        stopHingeTracking()
+        forceStopHingeTracking()
+        continuousTracking = false
         _state.value = _state.value.copy(engineStatus = EngineStatus.Disabled)
     }
 
@@ -150,7 +157,8 @@ class FLabCore(
     /** Reset F/LAB (DoD 21): clear F/LAB's own configuration and return to first-run defaults. */
     fun reset() {
         settings.reset()
-        stopHingeTracking()
+        continuousTracking = false
+        forceStopHingeTracking()
         _state.value = FLabState()
     }
 
@@ -174,7 +182,7 @@ class FLabCore(
             nowMillis = clock(),
         )
         _state.value = current.copy(moduleStates = current.moduleStates + (module to updated))
-        if (updated.disabledByBreaker && module == ModuleId.FoldMotion) stopHingeTracking()
+        if (updated.disabledByBreaker && module == ModuleId.FoldMotion) forceStopHingeTracking()
     }
 
     /** Re-arms a module the breaker tripped. Only the user may do this. */
@@ -200,7 +208,7 @@ class FLabCore(
         }
         if (_state.value.power == posture) return
         _state.value = _state.value.copy(power = posture)
-        if (posture == PowerPosture.Restricted) stopHingeTracking()
+        if (posture == PowerPosture.Restricted) forceStopHingeTracking()
     }
 
     // ---------------------------------------------------------------- internals
@@ -221,7 +229,10 @@ class FLabCore(
                 current.sessionStartedAtMillis
             },
         )
-        if (!config.enabled) stopHingeTracking()
+        if (!config.enabled) {
+            continuousTracking = false
+            forceStopHingeTracking()
+        }
     }
 
     private fun onWindowLayout(activity: Activity, layoutInfo: WindowLayoutInfo) {
@@ -297,8 +308,35 @@ class FLabCore(
             .launchIn(scope)
     }
 
-    /** Releases the hinge listener. Called when motion settles, on detach, and on disable. */
+    /**
+     * Keeps the hinge listener registered even when motion settles.
+     *
+     * Set by the System effects service. Without it the two renderers fight: the in-app one calls
+     * [stopHingeTracking] as soon as motion settles, which would tear down the very source the
+     * background service depends on to notice the *next* fold.
+     *
+     * This is the honest cost of reacting while F/LAB is not on screen — something has to be
+     * listening. The hinge sensor is the cheapest continuous source available and is what the
+     * platform itself uses for posture, but it is not free, which is why it is opt-in, tied to a
+     * visible notification, and released the moment the service stops.
+     */
+    fun setContinuousTracking(enabled: Boolean) {
+        continuousTracking = enabled
+        if (enabled) startHingeTracking() else stopHingeTracking()
+    }
+
+    /**
+     * Releases the hinge listener. Called when motion settles, on detach, and on disable.
+     *
+     * A no-op while [setContinuousTracking] is on, so a settling animation cannot silently disable
+     * the background effect.
+     */
     fun stopHingeTracking() {
+        if (continuousTracking) return
+        forceStopHingeTracking()
+    }
+
+    private fun forceStopHingeTracking() {
         hingeJob?.cancel()
         hingeJob = null
         markTransitioning(false)

@@ -50,7 +50,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             FLabTheme {
-                FLabApp(viewModel = viewModel, onShare = ::shareReport)
+                FLabApp(
+                    viewModel = viewModel,
+                    onShare = ::shareReport,
+                    onOpenSettings = ::openSettings,
+                )
             }
         }
     }
@@ -66,6 +70,20 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         core.refreshPowerPosture()
+        // Overlay and accessibility grants are made in Settings, in another process, and nothing
+        // tells us when they change. Coming back to the foreground is the one reliable moment to
+        // re-read them — and to take the service down if a grant was revoked while we were away.
+        viewModel.refreshAccess()
+    }
+
+    /**
+     * Opens a system settings screen.
+     *
+     * Wrapped because these intents are not guaranteed to resolve on every OEM build, and a crash
+     * on the way to a permission screen is the worst possible moment to crash.
+     */
+    private fun openSettings(intent: Intent) {
+        runCatching { startActivity(intent) }
     }
 
     /**

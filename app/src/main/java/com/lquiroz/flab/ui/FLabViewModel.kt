@@ -1,6 +1,7 @@
 package com.lquiroz.flab.ui
 
 import android.app.Application
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
@@ -16,12 +17,17 @@ import com.lquiroz.flab.diagnostics.DebugReport
 import com.lquiroz.flab.diagnostics.DeviceReport
 import com.lquiroz.flab.diagnostics.DiagnosticsSnapshot
 import com.lquiroz.flab.diagnostics.ModuleError
+import com.lquiroz.flab.diagnostics.SystemEffectsReport
 import com.lquiroz.flab.profiles.AppProfile
 import com.lquiroz.flab.profiles.DefaultAppProfiles
 import com.lquiroz.flab.profiles.FLabProfile
 import com.lquiroz.flab.profiles.ProfileId
 import com.lquiroz.flab.profiles.TreatmentMode
 import com.lquiroz.flab.settings.FLabConfiguration
+import com.lquiroz.flab.system.FLabOverlayService
+import com.lquiroz.flab.system.FoldOverlayWindow
+import com.lquiroz.flab.system.OverlayVerdict
+import com.lquiroz.flab.system.SystemAccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +54,7 @@ data class FLabUiState(
     val profile: FLabProfile = FLabProfile.Balanced,
     val appProfiles: List<AppProfile> = DefaultAppProfiles.seeded,
     val device: DeviceReport? = null,
+    val systemEffects: SystemEffectsState = SystemEffectsState(),
 ) {
     val configuredAppCount: Int get() = appProfiles.count { !it.isDisabled }
 
@@ -61,7 +68,33 @@ data class FLabUiState(
         }
 
     val needsAttention: Boolean
-        get() = configuration.enabled && state.moduleStates.values.any { it.disabledByBreaker }
+        get() = configuration.enabled &&
+            (
+                state.moduleStates.values.any { it.disabledByBreaker } ||
+                    (systemEffects.enabled && !systemEffects.canRun)
+                )
+}
+
+/**
+ * Everything the UI needs to describe the system-wide effect.
+ *
+ * [canRun] is the honest summary: both capabilities granted. With either one missing the effect
+ * cannot work at all, so Home says which one rather than offering a switch that does nothing.
+ */
+data class SystemEffectsState(
+    val enabled: Boolean = false,
+    val serviceRunning: Boolean = false,
+    val hasOverlayPermission: Boolean = false,
+    val accessibilityEnabled: Boolean = false,
+    val verdict: OverlayVerdict = OverlayVerdict.ModuleOff,
+) {
+    val canRun: Boolean get() = hasOverlayPermission && accessibilityEnabled
+
+    val missing: List<String>
+        get() = buildList {
+            if (!hasOverlayPermission) add("Display over other apps")
+            if (!accessibilityEnabled) add("App awareness")
+        }
 }
 
 /**
@@ -90,16 +123,35 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
 
     val registry: CompatibilityRegistry get() = resolvedConfig.registry
 
+    /**
+     * Bumped whenever the app comes back to the foreground.
+     *
+     * Overlay and accessibility grants are made in Settings, outside this process, and nothing
+     * notifies us when they change. Without this the Access screen would still be claiming a
+     * permission is missing after the user had just granted it.
+     */
+    private val accessRefresh = MutableStateFlow(0)
+
     val uiState: StateFlow<FLabUiState> = combine(
         core.state,
         settings.observe(),
-    ) { state, configuration ->
+        FLabOverlayService.isRunning,
+        FLabOverlayService.currentVerdict,
+        accessRefresh,
+    ) { state, configuration, serviceRunning, verdict, _ ->
         FLabUiState(
             state = state,
             configuration = configuration,
             profile = FLabProfile.of(configuration.profileId),
             appProfiles = mergedAppProfiles(configuration),
             device = deviceReport(),
+            systemEffects = SystemEffectsState(
+                enabled = configuration.systemEffectsEnabled,
+                serviceRunning = serviceRunning,
+                hasOverlayPermission = SystemAccess.canDrawOverlays(application),
+                accessibilityEnabled = SystemAccess.isAccessibilityServiceEnabled(application),
+                verdict = verdict,
+            ),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -140,6 +192,44 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
     fun clearModuleFailure(module: ModuleId) = core.clearModuleFailure(module)
 
     fun setExperimentsEnabled(enabled: Boolean) = settings.setExperimentsEnabled(enabled)
+
+    /**
+     * Turns the system-wide effect on or off.
+     *
+     * Refuses to start without both grants rather than starting a service that would abstain on
+     * every frame: a foreground service running for nothing is a battery cost with no effect, and
+     * a notification claiming F/LAB is doing something it cannot do is a lie.
+     */
+    fun setSystemEffectsEnabled(enabled: Boolean) {
+        val context = getApplication<Application>()
+        settings.setSystemEffectsEnabled(enabled)
+        if (enabled && SystemAccess.canDrawOverlays(context) &&
+            SystemAccess.isAccessibilityServiceEnabled(context)
+        ) {
+            FLabOverlayService.start(context)
+        } else {
+            FLabOverlayService.stop(context)
+        }
+        refreshAccess()
+    }
+
+    /** Re-reads grants made outside the app. Called when F/LAB returns to the foreground. */
+    fun refreshAccess() {
+        accessRefresh.value += 1
+        val context = getApplication<Application>()
+        // Reconcile: a grant revoked while we were away must take the service down with it.
+        val shouldRun = settings.current().systemEffectsEnabled &&
+            SystemAccess.canDrawOverlays(context) &&
+            SystemAccess.isAccessibilityServiceEnabled(context)
+        if (shouldRun) FLabOverlayService.start(context) else FLabOverlayService.stop(context)
+    }
+
+    fun overlayPermissionIntent(): Intent =
+        SystemAccess.overlaySettingsIntent(getApplication())
+
+    fun accessibilitySettingsIntent(): Intent = SystemAccess.accessibilitySettingsIntent()
+
+    fun appDetailsIntent(): Intent = SystemAccess.appDetailsIntent(getApplication())
 
     fun completeOnboarding() {
         settings.setOnboardingComplete(true)
@@ -201,6 +291,19 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
             lastError = lastError,
             compatibilityRuleCount = registry.size,
             capturedAtMillis = System.currentTimeMillis(),
+            systemEffects = systemEffectsReport(),
+        )
+    }
+
+    private fun systemEffectsReport(): SystemEffectsReport {
+        val context = getApplication<Application>()
+        return SystemEffectsReport(
+            enabled = settings.current().systemEffectsEnabled,
+            serviceRunning = FLabOverlayService.isRunning.value,
+            hasOverlayPermission = SystemAccess.canDrawOverlays(context),
+            accessibilityEnabled = SystemAccess.isAccessibilityServiceEnabled(context),
+            blurSupported = FoldOverlayWindow.isBlurAvailable(context),
+            verdictExplanation = FLabOverlayService.currentVerdict.value.explanation,
         )
     }
 

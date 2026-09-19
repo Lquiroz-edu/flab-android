@@ -85,6 +85,17 @@ object DebugReport {
         }
         appendLine()
 
+        snapshot.systemEffects?.let { effects ->
+            appendLine("System effects")
+            appendLine("  Enabled        ${effects.enabled.yesNo()}")
+            appendLine("  Service        ${if (effects.serviceRunning) "running" else "stopped"}")
+            appendLine("  Overlay perm   ${effects.hasOverlayPermission.granted()}")
+            appendLine("  App awareness  ${effects.accessibilityEnabled.granted()}")
+            appendLine("  Blur behind    ${if (effects.blurSupported) "supported" else "unavailable, using dim"}")
+            appendLine("  Last verdict   ${effects.verdictExplanation}")
+            appendLine()
+        }
+
         appendLine("Compatibility")
         appendLine("  Rules loaded   ${snapshot.compatibilityRuleCount}")
         if (includeConfiguredApps && configuredPackages.isNotEmpty()) {

@@ -15,6 +15,18 @@ Status vocabulary:
 
 ---
 
+## Update: System effects
+
+Since the first pass, F/LAB has a **System effects** module that applies the fold treatment across
+the whole device, not only inside F/LAB. It uses an overlay window with `FLAG_BLUR_BEHIND` plus a
+minimal accessibility service that reads only the foreground package name, so the effect can refuse
+to appear over protected apps.
+
+That moves several items below: DoD 1's "visible outside F/LAB's own interface" is now partly Done
+rather than Bounded, and DoD 31's click-through requirement is now load-bearing rather than
+recorded for later. What it does **not** move is anything requiring another app to be restyled —
+see the constraint below, which has been updated rather than removed.
+
 ## The honest constraint, stated once
 
 Several sections of the DoD ask F/LAB to change how **other apps** look — to extend Instagram's
@@ -51,10 +63,12 @@ it does not have.
 
 ## Section-by-section
 
-### 1. Product objective — **Structured**
+### 1. Product objective — **Done** (within what the platform allows)
 No root, no One UI replacement, no permanent service, no accessibility requirement for any stable
 module. `AndroidManifest.xml` requests only `RECEIVE_BOOT_COMPLETED` and `POST_NOTIFICATIONS`.
-"Improvements visible outside F/LAB's own UI" is **Bounded by Android** — see above.
+"Improvements visible outside F/LAB's own UI" is delivered by **System effects**: a fold-driven
+blur and dim across the whole device. It is off by default and needs two grants the user makes
+deliberately. What remains **Bounded by Android** is restyling another app, which nothing permits.
 
 ### 2. F/LAB Core — **Done**
 `core/FLabCore.kt` owns a single `FLabState` (`core/FLabState.kt`): posture, continuous progress,
@@ -126,11 +140,16 @@ Balanced, Smooth, Minimal, Battery and Custom in `profiles/FLabProfile.kt`, each
 `ui/screens/AppsScreen.kt` with per-app Immersive and Continuity cycling. Protected apps are shown
 locked with the reason, rather than hidden.
 
-### 14. Safe Apps — **Done**
+### 14. Safe Apps — **Done**, and now load-bearing
 `profiles/SafeApps.kt` covers banking, authenticators, password managers, the lock screen,
 permission surfaces, payments, the camera, package installation and system UI. Detection is blunt
-and errs towards protecting. `ImmersivePolicy` refuses a protected app even when the user has
-explicitly enabled it. Tested in `SafeAppsTest` and `ImmersivePolicyTest`.
+and errs towards protecting. Both `ImmersivePolicy` and `SystemEffectPolicy` refuse a protected app
+even when the user has explicitly enabled it — the one place in F/LAB where a stated user
+preference is deliberately not the last word.
+
+`SystemEffectPolicyTest` is the highest-stakes suite in the project, because this is the module
+that can put pixels over someone's bank. It also asserts the case that would silently defeat every
+other gate: an **unknown** foreground package resolves to refusing, never to showing.
 
 ### 15. F/LAB Experiments — **Done**
 `core/Experiments.kt` and `ui/screens/ExperimentsScreen.kt`. Everything is off by default and
@@ -200,9 +219,11 @@ are capped so a transition cannot read as a flash; scale travel is bounded; a st
 cannot inject a jump; the continuity budget is a hard stop against a frozen overlay. The rest —
 flicker, duplicated frames, late bars — needs a device.
 
-### 31. Interactions — **Structured**
-F/LAB draws no overlay over other apps in v1, so there is nothing to eat a tap. The click-through
-requirement is recorded for whenever an overlay is introduced.
+### 31. Interactions — **Done**
+F/LAB now does draw over other apps, so this is real. The overlay is created with
+`FLAG_NOT_TOUCHABLE or FLAG_NOT_FOCUSABLE` in a constant that is never made conditional, and it has
+no content view and no listener of any kind. Every tap, swipe, back gesture, scroll and keystroke
+reaches the app underneath untouched.
 
 ### 32. System gestures — **Structured**, **Device-gated**
 Nothing intercepts input outside F/LAB's own window.
@@ -251,6 +272,12 @@ will not allow and how to switch F/LAB off.
 ### 43. Healthy state — **Done**
 Home shows `F/LAB Active`, `Action required` or the reason a module is off, and offers a route to
 Diagnostics.
+
+### 44a. System effects — **Done**
+`system/SystemEffectPolicy.kt`, `system/FoldOverlayWindow.kt`, `system/FLabOverlayService.kt`,
+`system/FLabAccessibilityService.kt`. Blur-behind with a documented dim fallback when cross-window
+blur is unavailable; a foreground service whose notification is deliberate; frame loop stops and
+the overlay's surface is released the moment motion settles.
 
 ### 44. Minimum modules — **Structured**
 All four exist as modules with real policy and real tests. Fold Motion is fully live inside F/LAB;

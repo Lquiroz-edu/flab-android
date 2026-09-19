@@ -202,8 +202,43 @@ private fun ModuleRows(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
     }
 }
 
+/**
+ * The system-wide effect (DoD 43).
+ *
+ * The row never shows a bare "On" when the effect cannot actually run: if a grant is missing it
+ * names the missing one and routes to F/LAB Access, because a switch that reads On while nothing
+ * happens is the worst thing this screen could say.
+ */
+@Composable
+private fun SystemEffectsRow(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
+    val effects = ui.systemEffects
+    val value = when {
+        !effects.enabled -> "OFF"
+        !effects.canRun -> "Action required"
+        effects.serviceRunning -> "ON"
+        else -> "Starting"
+    }
+    val accent = when {
+        !effects.enabled -> FLabColors.textSecondary
+        !effects.canRun -> FLabColors.warning
+        else -> MaterialTheme.colorScheme.primary
+    }
+    StatusRow(
+        title = "System effects",
+        value = value,
+        accent = accent,
+        detail = when {
+            !effects.enabled -> "Apply fold motion outside F/LAB, across the system"
+            !effects.canRun -> "Needs: ${effects.missing.joinToString(" and ")}"
+            else -> effects.verdict.explanation
+        },
+        onClick = { onNavigate(FLabScreen.Access) },
+    )
+}
+
 @Composable
 private fun SummaryRows(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
+    SystemEffectsRow(ui, onNavigate)
     StatusRow(
         title = "Apps",
         value = "${ui.configuredAppCount} configured",

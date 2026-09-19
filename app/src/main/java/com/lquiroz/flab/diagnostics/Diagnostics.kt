@@ -27,6 +27,21 @@ data class ModuleError(
 )
 
 /**
+ * State of the system-wide overlay, for Diagnostics (DoD 37).
+ *
+ * [verdictExplanation] is the important field: it answers "why is nothing happening right now"
+ * without a debugger, which is the entire reason Diagnostics exists.
+ */
+data class SystemEffectsReport(
+    val enabled: Boolean,
+    val serviceRunning: Boolean,
+    val hasOverlayPermission: Boolean,
+    val accessibilityEnabled: Boolean,
+    val blurSupported: Boolean,
+    val verdictExplanation: String,
+)
+
+/**
  * A grantable capability and what F/LAB loses without it (DoD 17).
  *
  * The `whatBreaks` field is the point: the Access screen is not allowed to say "turn this on",
@@ -53,6 +68,8 @@ data class DiagnosticsSnapshot(
     val lastError: ModuleError?,
     val compatibilityRuleCount: Int,
     val capturedAtMillis: Long,
+    /** State of the system-wide overlay, or null when the feature is off. */
+    val systemEffects: SystemEffectsReport? = null,
 ) {
     val hasBlockingIssue: Boolean
         get() = access.any { !it.granted && !it.experimental } ||

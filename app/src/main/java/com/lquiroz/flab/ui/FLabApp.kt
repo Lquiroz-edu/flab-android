@@ -1,5 +1,6 @@
 package com.lquiroz.flab.ui
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.spring
@@ -58,7 +59,11 @@ import com.lquiroz.flab.ui.theme.FLabColors
  *     resize during an unfold, which is the "contenido desplazado accidentalmente" of DoD 30.
  */
 @Composable
-fun FLabApp(viewModel: FLabViewModel, onShare: (String) -> Unit) {
+fun FLabApp(
+    viewModel: FLabViewModel,
+    onShare: (String) -> Unit,
+    onOpenSettings: (Intent) -> Unit,
+) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val screen by viewModel.screen.collectAsStateWithLifecycle()
     val previewProgress by viewModel.previewProgress.collectAsStateWithLifecycle()
@@ -107,7 +112,7 @@ fun FLabApp(viewModel: FLabViewModel, onShare: (String) -> Unit) {
                         .fillMaxWidth()
                         .widthIn(max = MAX_CONTENT_WIDTH_DP.dp),
                 ) {
-                    ScreenContent(viewModel, ui, screen, previewProgress, wide, onShare)
+                    ScreenContent(viewModel, ui, screen, previewProgress, wide, onShare, onOpenSettings)
                 }
             }
         }
@@ -122,6 +127,7 @@ private fun ScreenContent(
     previewProgress: Float,
     wide: Boolean,
     onShare: (String) -> Unit,
+    onOpenSettings: (Intent) -> Unit,
 ) {
     AnimatedContent(
         targetState = screen,
@@ -169,6 +175,13 @@ private fun ScreenContent(
 
                 FLabScreen.Access -> AccessScreen(
                     requirements = remember(ui) { viewModel.accessRequirements() },
+                    systemEffects = ui.systemEffects,
+                    onToggleSystemEffects = viewModel::setSystemEffectsEnabled,
+                    onOpenOverlaySettings = { onOpenSettings(viewModel.overlayPermissionIntent()) },
+                    onOpenAccessibilitySettings = {
+                        onOpenSettings(viewModel.accessibilitySettingsIntent())
+                    },
+                    onOpenAppDetails = { onOpenSettings(viewModel.appDetailsIntent()) },
                 )
 
                 FLabScreen.Diagnostics -> DiagnosticsScreen(
