@@ -224,7 +224,7 @@ private fun ScreenContent(
 @Composable
 private fun GlassBackdrop(modifier: Modifier = Modifier) {
     val dark = FLabColors.isDark
-    val blobAlpha = if (dark) 1f else 0.7f
+    val blobAlpha = if (dark) 1f else 0.55f
     Box(modifier = modifier) {
         Box(
             Modifier

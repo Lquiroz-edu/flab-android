@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -75,18 +76,24 @@ fun FLabCard(
     Column(
         modifier = modifier
             .scale(scale)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(FLabTokens.RadiusCard),
+                ambientColor = Color.Black.copy(alpha = if (dark) 0.4f else 0.10f),
+                spotColor = Color.Black.copy(alpha = if (dark) 0.4f else 0.14f),
+            )
             .clip(RoundedCornerShape(FLabTokens.RadiusCard))
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.72f else 0.68f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.92f else 0.90f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.72f else 0.60f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.92f else 0.82f),
                     ),
                 ),
             )
             .border(
                 1.dp,
-                Color.White.copy(alpha = if (dark) 0.10f else 0.45f),
+                Color.White.copy(alpha = if (dark) 0.10f else 0.75f),
                 RoundedCornerShape(FLabTokens.RadiusCard),
             )
             .then(
@@ -132,19 +139,25 @@ fun FLabGlassCard(
     val dark = FLabColors.isDark
     Column(
         modifier = modifier
+            .shadow(
+                elevation = 20.dp,
+                shape = RoundedCornerShape(FLabTokens.RadiusCard),
+                ambientColor = accent.copy(alpha = if (dark) 0.5f else 0.22f),
+                spotColor = accent.copy(alpha = if (dark) 0.5f else 0.28f),
+            )
             .clip(RoundedCornerShape(FLabTokens.RadiusCard))
             .background(
                 Brush.linearGradient(
                     listOf(
-                        accent.copy(alpha = if (dark) 0.32f else 0.26f),
-                        FLabTokens.gradientPartner(accent).copy(alpha = if (dark) 0.20f else 0.16f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.88f else 0.84f),
+                        accent.copy(alpha = if (dark) 0.32f else 0.22f),
+                        FLabTokens.gradientPartner(accent).copy(alpha = if (dark) 0.20f else 0.14f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = if (dark) 0.88f else 0.72f),
                     ),
                 ),
             )
             .border(
                 1.dp,
-                Color.White.copy(alpha = if (dark) 0.18f else 0.60f),
+                Color.White.copy(alpha = if (dark) 0.18f else 0.85f),
                 RoundedCornerShape(FLabTokens.RadiusCard),
             )
             .padding(contentPadding.dp),

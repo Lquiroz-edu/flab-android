@@ -1,6 +1,6 @@
 package com.lquiroz.flab.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -140,9 +140,15 @@ private val FLabTypography = Typography(
     labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.9.sp),
 )
 
+/**
+ * F/LAB's own look is a light, white-backed "liquid glass" surface — every reference the design
+ * has chased (frosted panels, vivid colour bleeding through translucency) has been light, so this
+ * follows that rather than the device's system dark/light setting. [darkTheme] stays a parameter,
+ * not a hardcoded `false`, so a real dark mode can still be wired in later without moving callers.
+ */
 @Composable
 fun FLabTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val semantic = FLabSemanticColors(
@@ -158,7 +164,15 @@ fun FLabTheme(
         MaterialTheme(
             colorScheme = if (darkTheme) DarkScheme else LightScheme,
             typography = FLabTypography,
-            content = content,
-        )
+        ) {
+            // Text() with no explicit colour falls back to LocalContentColor, which nothing before
+            // this set — it stayed Compose's own default (black) regardless of theme, which is
+            // exactly the "unreadable text on a dark card" bug this fixes at the root instead of
+            // patching every Text() call across every screen.
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+                content = content,
+            )
+        }
     }
 }
