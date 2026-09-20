@@ -150,6 +150,7 @@ private fun ScreenContent(
                     onOpenAccessibilitySettings = {
                         onOpenSettings(viewModel.accessibilitySettingsIntent())
                     },
+                    onOpenHomeSettings = { onOpenSettings(viewModel.homeSettingsIntent()) },
                 )
 
                 FLabScreen.FoldMotion -> FoldMotionScreen(

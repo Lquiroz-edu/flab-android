@@ -8,4 +8,11 @@
         <item name="android:colorAccent">#8CF6FF</item>
         <item name="android:windowBackground">@color/flab_background</item>
     </style>
+
+    <!-- F/LAB Home draws over the system wallpaper, like every launcher; its own background is nothing. -->
+    <style name="Theme.FLab.Home" parent="Theme.FLab">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

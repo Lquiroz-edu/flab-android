@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
 
 /**
  * The F/LAB Core (DoD 2).
@@ -79,6 +80,7 @@ class FLabCore(
     val evidence: StateFlow<FoldEvidence> = _evidence.asStateFlow()
 
     private var attachedJob: Job? = null
+    private var attachedActivity: WeakReference<Activity>? = null
     private var hingeJob: Job? = null
     private var configuration: FLabConfiguration = FLabConfiguration()
 
@@ -109,8 +111,9 @@ class FLabCore(
             .launchIn(scope)
     }
 
-    /** Binds the Core to an Activity's window. Safe to call repeatedly. */
+    /** Binds the Core to an Activity's window. Safe to call repeatedly; the newest caller wins. */
     fun attach(activity: Activity) {
+        attachedActivity = WeakReference(activity)
         attachedJob?.cancel()
         attachedJob = scope.launch {
             WindowInfoTracker.getOrCreate(activity)
@@ -122,7 +125,14 @@ class FLabCore(
         refreshPowerPosture()
     }
 
-    fun detach() {
+    /**
+     * Releases [activity]'s binding — and only its own. With two Activities in the app (F/LAB and
+     * F/LAB Home) Android starts the new one *before* stopping the old one, so an unconditional
+     * detach would tear down the subscription the newcomer just opened.
+     */
+    fun detach(activity: Activity) {
+        if (attachedActivity?.get() !== activity) return
+        attachedActivity = null
         attachedJob?.cancel()
         attachedJob = null
         stopHingeTracking()

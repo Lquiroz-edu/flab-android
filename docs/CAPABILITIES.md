@@ -67,6 +67,24 @@ does. `WindowManager.isCrossWindowBlurEnabled` reports the current answer and Di
 Each experiment must be isolated, explain its permissions, and carry a measurable battery and
 performance budget.
 
+## Available by *being* the home screen — F/LAB Home
+
+The one part of the iPhone Duo's opening that none of the above reaches is the icons: they ride
+the bending wallpaper and reflow with the hinge. No app can move another launcher's icons, so
+F/LAB ships its own launcher (`launcher/`), offered on Home and set as default only by the user in
+the system's own dialog. It owns three things nothing else here can:
+
+- **Icon geometry.** Every icon's position passes through `FoldWarpMesh.displaceU` — the same
+  field the wallpaper bends with — read in the layout's placement block so a moving hinge re-places
+  icons without recomposing anything (`HomeLayout`, tested).
+- **The reflow.** When the window changes size (cover to inner and back) the grid re-columns and
+  each icon springs from its old slot to its new one rather than jumping.
+- **App launch.** Apps open with the platform's clip-reveal from their own icon bounds.
+
+Its data access is the launcher-standard one: `LauncherApps` for launchable activities and icons,
+and `<queries>` for the user's dialer, messages, browser and camera defaults (the dock). Still no
+`QUERY_ALL_PACKAGES`, still nothing about how apps are used, still nowhere to send anything.
+
 ## Not available to a normal third-party app, at all
 
 Not even with the overlay and accessibility grants above:
@@ -79,7 +97,8 @@ Not even with the overlay and accessibility grants above:
 - Replacing One UI's own unfold transition, or any SystemUI animation. This is the one people ask
   about most: the celebrated iPhone Duo open animation is a SystemUI transition, and the recreations
   of it on Android foldables are standalone apps animating screenshots of *their own* content. None
-  of them touches the system transition either.
+  of them touches the system transition either. What F/LAB *can* do about it is above: own the home
+  screen, so the surface most people are looking at when they open the device is one it renders.
 - Modifying protected System UI behaviour without platform signing, root, or OEM cooperation.
 
 ## What this means for the DoD

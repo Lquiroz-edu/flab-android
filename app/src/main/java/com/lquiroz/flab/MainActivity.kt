@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
                 try {
                     kotlinx.coroutines.awaitCancellation()
                 } finally {
-                    core.detach()
+                    core.detach(this@MainActivity)
                 }
             }
         }

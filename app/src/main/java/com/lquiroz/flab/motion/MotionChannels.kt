@@ -20,10 +20,11 @@ package com.lquiroz.flab.motion
  *
  * There is no seam, hinge line, crease mask, curtain or centre band channel, and there must never
  * be one on F/LAB's own Compose surfaces. [warpAmount] looks like it breaks that rule and does not:
- * it exists only for a surface that owns a single continuous background image top to bottom — a
- * wallpaper — where bending that one image at the hinge is what makes the fold *less* visible, the
- * same argument in reverse. Applied to a layered Compose screen it would do nothing useful, which
- * is why no Compose surface reads it.
+ * it exists only for a surface that sits on a single continuous background image — the wallpaper,
+ * and the home screen's icons riding on it — where bending that one image at the hinge is what
+ * makes the fold *less* visible, the same argument in reverse. Applied to a layered settings
+ * screen it would do nothing useful, which is why F/LAB's own screens do not read it; F/LAB Home
+ * does, through the same displacement field the wallpaper uses.
  *
  * The same goes for a full-bleed opaque scrim: [dimAlpha] is capped well below opacity so a
  * transition can never present as a black flash.

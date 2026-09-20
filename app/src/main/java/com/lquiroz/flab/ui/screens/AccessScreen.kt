@@ -75,8 +75,9 @@ fun AccessScreen(
             SectionLabel("What F/LAB still does not do")
             Spacer(Modifier.height(10.dp))
             Text(
-                text = "No root. No device administrator. It cannot read your screen, cannot see " +
-                    "what you type, and cannot list your installed apps. The layer it draws never " +
+                text = "No root. No device administrator. It cannot read your screen or see what " +
+                    "you type. It lists your apps only to draw F/LAB Home, the way any home screen " +
+                    "must, and reads nothing about how you use them. The layer it draws never " +
                     "takes a touch — every tap, swipe and gesture passes through to the app " +
                     "underneath. Fold Motion, Continuity, Live Preview and Profiles all work " +
                     "inside F/LAB with none of the grants above.",

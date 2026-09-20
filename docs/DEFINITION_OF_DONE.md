@@ -147,6 +147,14 @@ grouping Fold Motion/Continuity, Immersive/System effects and Apps by what they 
 card, and Experiments/Diagnostics as compact chips. A tile's subtitle explains its own state (DoD
 43) — the per-switch detail lives one tap deeper, on the screen the tile opens.
 
+### 10b. F/LAB Home — **Done**
+`launcher/`. The Duo effect's missing half: a home screen whose icons ride the same hinge-pinch
+field as the wallpaper (`HomeLayout.warpX` = `FoldWarpMesh.displaceU`), re-column with a spring
+when the window changes between cover and inner, and launch apps with a clip-reveal from the icon.
+Optional — the user picks it in the system's default-home dialog from the card on Home; One UI Home
+stays installed. `HomeLayoutTest` pins the geometry, including that icons never cross at the
+strongest pinch. See `docs/CAPABILITIES.md` for exactly what it reads.
+
 ### 11. Live Preview — **Done**
 `ui/screens/FoldMotionScreen.kt`. The scrubber feeds the same `MotionChannelMapper` at the same
 tuning as the live engine, so stopping mid-drag demonstrates the DoD 3 property directly. Preview

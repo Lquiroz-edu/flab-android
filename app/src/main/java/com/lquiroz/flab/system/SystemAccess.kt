@@ -4,6 +4,8 @@ import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import androidx.core.net.toUri
 import android.text.TextUtils
@@ -49,6 +51,32 @@ object SystemAccess {
             WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
             ComponentName(context, FoldWallpaperService::class.java),
         )
+
+    /** Whether F/LAB's Fold Wallpaper is the live wallpaper right now. */
+    fun isFoldWallpaperActive(context: Context): Boolean {
+        val expected = ComponentName(context, FoldWallpaperService::class.java)
+        return runCatching { WallpaperManager.getInstance(context).wallpaperInfo?.component }
+            .getOrNull() == expected
+    }
+
+    /** Whether F/LAB Home is the default home screen. */
+    fun isDefaultHome(context: Context): Boolean {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val pm = context.packageManager
+        val resolved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.resolveActivity(
+                intent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong()),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        }
+        return resolved?.activityInfo?.packageName == context.packageName
+    }
+
+    /** The system's default-home picker. */
+    fun homeSettingsIntent(): Intent = Intent(Settings.ACTION_HOME_SETTINGS)
 
     /**
      * Whether F/LAB's accessibility service is enabled.

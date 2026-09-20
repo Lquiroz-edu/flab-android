@@ -49,8 +49,9 @@ private val steps = listOf(
         label = "What it is",
         title = "A layer, not a replacement",
         body = "F/LAB makes a foldable feel more coherent when it opens, closes and changes " +
-            "screen. One UI stays exactly as it is. F/LAB does not replace your launcher, and it " +
-            "does not need root.",
+            "screen. One UI stays exactly as it is, and F/LAB does not need root. It only becomes " +
+            "your home screen if you choose F/LAB Home yourself — that is where the icons bend " +
+            "with the hinge.",
     ),
     OnboardingStep(
         label = "What it changes",

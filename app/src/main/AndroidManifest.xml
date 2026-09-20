@@ -21,9 +21,35 @@
 
     <!--
         Still absent, and still on purpose: no QUERY_ALL_PACKAGES, no screen capture, no network.
-        F/LAB reads the foreground package through its accessibility service and nothing else, so it
-        has no way to enumerate what is installed and nowhere to send it if it could.
+        The <queries> below are the launcher-standard ones F/LAB Home needs to draw a home screen —
+        launchable activities, and the user's own dialer, messages, browser and camera for the dock
+        — read through LauncherApps like any home screen. Nothing about how apps are used is read,
+        and there is still nowhere to send anything.
     -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_MESSAGING" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_BROWSER" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+        </intent>
+    </queries>
 
     <!-- Fold Motion follows the hinge where there is one, and degrades where there is not. -->
     <uses-feature
@@ -49,6 +75,30 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            F/LAB Home, the launcher. Optional: it only ever becomes the home screen if the user
+            picks it in the system's default-home dialog, and One UI Home stays installed.
+            stateNotNeeded + clearTaskOnLaunch are what a home activity is expected to declare;
+            configChanges keeps it alive across the fold so the icon reflow can animate.
+        -->
+        <activity
+            android:name=".launcher.HomeLauncherActivity"
+            android:clearTaskOnLaunch="true"
+            android:configChanges="keyboardHidden|keyboard|orientation|screenLayout|screenSize|smallestScreenSize|density|uiMode|navigation"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/home_label"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:stateNotNeeded="true"
+            android:theme="@style/Theme.FLab.Home">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

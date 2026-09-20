@@ -12,6 +12,8 @@
     <string name="overlay_notification_text">Fold motion applies across the system. Tap to open, or stop it here.</string>
     <string name="overlay_notification_stop">Stop</string>
 
+    <string name="home_label">F/LAB Home</string>
+
     <string name="wallpaper_label">F/LAB — Fold</string>
     <string name="wallpaper_description">A background that bends at the hinge as you open and close the device, with glass-style time, battery and fold status. Uses no photo of yours — the art is generated on-device.</string>
 </resources>

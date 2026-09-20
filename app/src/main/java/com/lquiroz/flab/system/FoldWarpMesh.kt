@@ -51,13 +51,21 @@ object FoldWarpMesh {
         for (row in 0 until ROWS) {
             val y = if (ROWS == 1) 0f else height * row / (ROWS - 1)
             for (col in 0..COLUMNS) {
-                val u = col.toFloat() / COLUMNS
-                val d = u - 0.5f
-                val newU = u - d * warp * falloff(abs(d))
-                out[i++] = newU * width
+                out[i++] = displaceU(col.toFloat() / COLUMNS, warp) * width
                 out[i++] = y
             }
         }
+    }
+
+    /**
+     * Where a horizontal position `u` (`0f` left edge, `1f` right edge) lands at [warpAmount].
+     *
+     * Public because F/LAB Home places its icons through this same function: the icons ride the
+     * bending wallpaper rather than sliding over it, which is the whole reading of the effect.
+     */
+    fun displaceU(u: Float, warpAmount: Float): Float {
+        val d = u - 0.5f
+        return u - d * warpAmount.coerceIn(0f, 1f) * falloff(abs(d))
     }
 
     /** `1f` exactly at the hinge, smoothly down to `0f` at the edge of the affected band. */

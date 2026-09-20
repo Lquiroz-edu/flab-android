@@ -60,6 +60,9 @@ data class FLabUiState(
     val appProfiles: List<AppProfile> = DefaultAppProfiles.seeded,
     val device: DeviceReport? = null,
     val systemEffects: SystemEffectsState = SystemEffectsState(),
+    /** Whether F/LAB Home is the default home screen — where the Duo icon reflow lives. */
+    val isDefaultHome: Boolean = false,
+    val isFoldWallpaperActive: Boolean = false,
 ) {
     val configuredAppCount: Int get() = appProfiles.count { !it.isDisabled }
 
@@ -181,6 +184,8 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
                 engineEnabled = state.engineStatus == EngineStatus.Active,
                 verdict = verdict,
             ),
+            isDefaultHome = SystemAccess.isDefaultHome(application),
+            isFoldWallpaperActive = SystemAccess.isFoldWallpaperActive(application),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -277,6 +282,8 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
     fun appDetailsIntent(): Intent = SystemAccess.appDetailsIntent(getApplication())
 
     fun liveWallpaperIntent(): Intent = SystemAccess.changeLiveWallpaperIntent(getApplication())
+
+    fun homeSettingsIntent(): Intent = SystemAccess.homeSettingsIntent()
 
     fun completeOnboarding() {
         settings.setOnboardingComplete(true)

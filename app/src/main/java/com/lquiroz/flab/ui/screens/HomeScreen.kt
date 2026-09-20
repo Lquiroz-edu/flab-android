@@ -81,6 +81,7 @@ fun HomeScreen(
     onBeginSetup: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
+    onOpenHomeSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val setupSteps = remember(
@@ -131,6 +132,7 @@ fun HomeScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             HeroCard(ui, onNavigate)
+            LauncherCard(ui, onOpenHomeSettings, onNavigate)
             FeatureTiles(ui, wide, onNavigate)
             PerformanceCard(ui, onNavigate)
             SecondaryLinks(ui, onNavigate)
@@ -347,6 +349,64 @@ private fun FoldDeviceIllustration(modifier: Modifier = Modifier) {
 }
 
 /**
+ * F/LAB Home — the launcher — offered, never imposed.
+ *
+ * This is the card that answers "why does my Fold not open like the Duo": because the Duo's
+ * signature is its *icons* reflowing with the hinge, and no app can move another launcher's icons.
+ * Until F/LAB is the home screen the card is the hero glass, because nothing else on this screen
+ * matters more to what the user came for; once it is, it shrinks to a status line.
+ */
+@Composable
+private fun LauncherCard(
+    ui: FLabUiState,
+    onOpenHomeSettings: () -> Unit,
+    onNavigate: (FLabScreen) -> Unit,
+) {
+    if (ui.isDefaultHome) {
+        FLabCard(Modifier.fillMaxWidth(), contentPadding = 18) {
+            SectionLabel("F/LAB Home")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Your home screen. Icons and wallpaper bend with the hinge and settle as " +
+                    "the device opens.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = FLabColors.textSecondary,
+            )
+            if (!ui.isFoldWallpaperActive) {
+                Spacer(Modifier.height(12.dp))
+                Pill(
+                    text = "Add the Fold wallpaper",
+                    accent = MaterialTheme.colorScheme.secondary,
+                    onClick = { onNavigate(FLabScreen.FoldMotion) },
+                )
+            }
+        }
+        return
+    }
+    FLabGlassCard(Modifier.fillMaxWidth(), accent = MaterialTheme.colorScheme.secondary) {
+        SectionLabel("Duo-style home screen")
+        Spacer(Modifier.height(10.dp))
+        Text("F/LAB Home", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "This is where the effect lives. Android lets no app move another launcher's " +
+                "icons, so F/LAB brings its own home screen: the wallpaper and every icon bend at " +
+                "the hinge and settle as the device opens, and apps grow out of their icon. One UI " +
+                "Home stays installed — switch back any time from the same setting.",
+            style = MaterialTheme.typography.bodySmall,
+            color = FLabColors.textSecondary,
+        )
+        Spacer(Modifier.height(16.dp))
+        FLabButton(
+            text = "Set as home screen",
+            onClick = onOpenHomeSettings,
+            accent = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
  * The three hub tiles: Fold (motion + continuity), Experience (immersive + the system-wide
  * effect) and Apps (per-app treatment) — the groupings DoD 10 lists, read as a product rather than
  * four separate module switches.
@@ -490,9 +550,9 @@ private fun SecondaryLinks(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
  * the System effects toggle — that used to be scattered across screens with nothing tying them
  * together into one obvious next action.
  *
- * The one place [FLabGlassCard] is used outside the wallpaper: this is the single most important
- * thing on the screen while it is showing, which is exactly the case DoD 40's "few visible
- * settings at once" reserves it for.
+ * A [FLabGlassCard], like [LauncherCard]: the one or two things on this screen the user most
+ * needs to act on, which is exactly the case DoD 40's "few visible settings at once" reserves it
+ * for. Both disappear (or shrink) once done.
  */
 @Composable
 private fun SetupCard(

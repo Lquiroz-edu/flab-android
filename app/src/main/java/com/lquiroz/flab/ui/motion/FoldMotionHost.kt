@@ -3,11 +3,14 @@ package com.lquiroz.flab.ui.motion
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -56,7 +59,8 @@ fun FoldMotionHost(
     content: @Composable () -> Unit,
 ) {
     val engine = remember { FoldMotionEngine(tuning) }
-    var channels by remember { mutableStateOf(MotionChannels.Neutral) }
+    val channelsState = remember { mutableStateOf(MotionChannels.Neutral) }
+    var channels by channelsState
 
     LaunchedEffect(tuning) { engine.updateTuning(tuning) }
 
@@ -88,7 +92,18 @@ fun FoldMotionHost(
         }
     }
 
-    MotionLayer(channels, modifier, content)
+    CompositionLocalProvider(LocalMotionChannels provides channelsState) {
+        MotionLayer(channels, modifier, content)
+    }
+}
+
+/**
+ * The live channels of the nearest [FoldMotionHost], as a [State] rather than a value on purpose:
+ * a layout that reads `.value` inside its placement block is re-placed on every frame of a fold
+ * and never recomposed or re-measured for it. F/LAB Home's icon grid is the consumer.
+ */
+val LocalMotionChannels = staticCompositionLocalOf<State<MotionChannels>> {
+    mutableStateOf(MotionChannels.Neutral)
 }
 
 /**
