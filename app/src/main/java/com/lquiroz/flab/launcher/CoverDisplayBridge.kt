@@ -76,7 +76,9 @@ class CoverDisplayBridge(
      */
     private fun onEvent(kind: String, displayId: Int) {
         val display = displayManager?.getDisplay(displayId)
-        log("$kind #$displayId" + (display?.let { " → ${describe(it)}" } ?: ""))
+        // The platform fires "changed" in bursts of identical events during a fold; one line per
+        // distinct state is the record worth keeping, or a single fold evicts everything else.
+        log("$kind " + (display?.let { describe(it) } ?: "#$displayId (gone)"), dedupe = true)
         reconcile()
     }
 
@@ -88,6 +90,7 @@ class CoverDisplayBridge(
     fun setWanted(wanted: Boolean) {
         if (this.wanted == wanted) return
         this.wanted = wanted
+        log(if (wanted) "hand-off began: looking for the other panel" else "hand-off ended")
         reconcile()
     }
 
@@ -177,13 +180,16 @@ class CoverDisplayBridge(
         lastStatus.value = status
     }
 
-    private fun log(line: String) {
+    private fun log(line: String, dedupe: Boolean = false) {
+        if (dedupe && lastLoggedBody == line) return
+        lastLoggedBody = line
         val stamp = "+${(SystemClock.elapsedRealtime() - startedAt) / 1000}s"
         events.value = (events.value + "$stamp $line").takeLast(LOG_LINES)
     }
 
     companion object {
-        private const val LOG_LINES = 12
+        private const val LOG_LINES = 40
+        private var lastLoggedBody: String? = null
         private val startedAt = SystemClock.elapsedRealtime()
         private val lastStatus = MutableStateFlow("Not started")
         private val events = MutableStateFlow<List<String>>(emptyList())
