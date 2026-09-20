@@ -222,8 +222,14 @@ Needs the four measurement scenarios the DoD lists: idle, normal use, an intensi
 and vertical video.
 
 ### 26. Temperature — **Structured**, **Device-gated**
-`PowerPosture` folds Android's thermal status into the state and stands modules down at
-`THERMAL_STATUS_MODERATE` and above. Sustained heating has to be measured.
+`PowerPosture` folds Android's battery saver and thermal status into the state. `Conserving`
+(battery saver on, or `THERMAL_STATUS_MODERATE`) drops the veil channels — blur, dim, elevation,
+the ones with a GPU cost — through `MotionTuning.forPower`, and keeps the motion itself running;
+`Restricted` (`THERMAL_STATUS_SEVERE`+) stops everything. It used to take Fold Motion out entirely
+at `Conserving`, which on a real Galaxy Fold — battery saver at 40%, a warm device after a few
+minutes — left every visible effect dead while Home read ON; that is fixed, and `FLabStateTest`
+pins it. Home names the signal ("Battery saver is on", "The device is warm"), not just the posture.
+Sustained heating still has to be measured.
 
 ### 27. Fold compatibility — **Structured**
 Nothing is hard-coded to one model. The cover/inner inference is a documented guess, labelled as

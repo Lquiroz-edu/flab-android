@@ -55,6 +55,14 @@ data class MotionTuning(
      */
     val warpIntensity: Float = 1f,
 ) {
+    /**
+     * The same motion with the veil channels off — blur, dim and elevation, the three with a real
+     * per-frame GPU cost. Position channels (scale, offset, expansion, warp) are kept, so the
+     * device still visibly follows the hinge; it just stops paying for the softening on top.
+     * This is what a Conserving power posture means, and all it means.
+     */
+    fun withoutVeil(): MotionTuning = copy(blurIntensity = 0f, dimIntensity = 0f, depthIntensity = 0f)
+
     /** True when this tuning cannot produce any visible change and the engine can stay parked. */
     val isInert: Boolean
         get() = scaleIntensity == 0f &&

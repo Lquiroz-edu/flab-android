@@ -84,7 +84,7 @@ fun FLabApp(
 
     FoldMotionHost(
         evidence = viewModel.evidence,
-        tuning = ui.profile.motion,
+        tuning = ui.effectiveMotion,
         enabled = ui.configuration.enabled,
         onSettled = viewModel::onMotionSettled,
         modifier = Modifier.fillMaxSize(),
@@ -179,6 +179,8 @@ private fun ScreenContent(
                 FLabScreen.Access -> AccessScreen(
                     requirements = remember(ui) { viewModel.accessRequirements() },
                     systemEffects = ui.systemEffects,
+                    canPreview = ui.canPreviewSystemEffects,
+                    onPreview = viewModel::previewSystemEffects,
                     onToggleSystemEffects = viewModel::setSystemEffectsEnabled,
                     onOpenOverlaySettings = { onOpenSettings(viewModel.overlayPermissionIntent()) },
                     onOpenAccessibilitySettings = {

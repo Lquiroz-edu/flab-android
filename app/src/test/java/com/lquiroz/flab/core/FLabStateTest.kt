@@ -1,5 +1,6 @@
 package com.lquiroz.flab.core
 
+import com.lquiroz.flab.motion.MotionTuning
 import com.lquiroz.flab.profiles.ProfileId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,12 +29,32 @@ class FLabStateTest {
     }
 
     @Test
-    fun `power saving keeps only the cheap modules`() {
+    fun `power saving keeps every module running`() {
+        // Regression cover for the bug that made the app look dead on a real Fold: battery saver
+        // or a warm device used to take Fold Motion out entirely, and every visible effect — the
+        // in-app motion, the system overlay, the wallpaper warp — hangs off that one module.
         val conserving = active.copy(power = PowerPosture.Conserving)
 
-        assertFalse("motion is the expensive one", conserving.isModuleRunning(ModuleId.FoldMotion))
-        assertTrue(conserving.isModuleRunning(ModuleId.Continuity))
-        assertTrue(conserving.isModuleRunning(ModuleId.AppProfiles))
+        ModuleId.entries.forEach {
+            assertTrue("$it must survive power saving", conserving.isModuleRunning(it))
+        }
+    }
+
+    @Test
+    fun `power saving drops the veil and keeps the motion`() {
+        val full = MotionTuning.Balanced
+        val conserving = full.forPower(PowerPosture.Conserving)
+
+        assertEquals(0f, conserving.blurIntensity)
+        assertEquals(0f, conserving.dimIntensity)
+        assertEquals(0f, conserving.depthIntensity)
+        assertEquals("position channels are kept", full.scaleIntensity, conserving.scaleIntensity)
+        assertEquals(full.offsetIntensity, conserving.offsetIntensity)
+        assertEquals(full.warpIntensity, conserving.warpIntensity)
+        assertFalse("the engine must still schedule frames", conserving.isInert)
+
+        assertEquals("nothing changes at normal power", full, full.forPower(PowerPosture.Normal))
+        assertTrue("restricted is inert", full.forPower(PowerPosture.Restricted).isInert)
     }
 
     @Test

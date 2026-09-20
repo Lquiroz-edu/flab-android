@@ -1,6 +1,7 @@
 package com.lquiroz.flab.core
 
 import com.lquiroz.flab.motion.EvidenceSource
+import com.lquiroz.flab.motion.MotionTuning
 import com.lquiroz.flab.profiles.ProfileId
 
 /**
@@ -79,6 +80,30 @@ enum class PowerPosture(val label: String) {
     Restricted("Restricted"),
 }
 
+/**
+ * Which platform signal produced the current [PowerPosture], so Home can say "battery saver is
+ * on" or "the device is warm" instead of a generic "conserving" the user cannot act on (DoD 43).
+ */
+enum class PowerSignal(val label: String) {
+    None("Normal"),
+    BatterySaver("Battery saver"),
+    Thermal("Device temperature"),
+}
+
+/**
+ * The tuning a renderer should actually run at under [power].
+ *
+ * Conserving keeps the motion and drops the veil ([MotionTuning.withoutVeil]); Restricted is the
+ * inert Battery tuning, so a frame loop never starts at all. One function, used by every consumer
+ * — the in-app host, the overlay service, the wallpaper — so they cannot disagree about what a
+ * power posture means.
+ */
+fun MotionTuning.forPower(power: PowerPosture): MotionTuning = when (power) {
+    PowerPosture.Normal -> this
+    PowerPosture.Conserving -> withoutVeil()
+    PowerPosture.Restricted -> MotionTuning.Battery
+}
+
 /** Whether F/LAB is doing anything at all. The kill switch (DoD 21) moves this to [Disabled]. */
 enum class EngineStatus(val label: String) {
     Active("Active"),
@@ -106,6 +131,7 @@ data class FLabState(
         ModuleRuntimeState()
     },
     val power: PowerPosture = PowerPosture.Normal,
+    val powerSignal: PowerSignal = PowerSignal.None,
     val sessionStartedAtMillis: Long = 0L,
 ) {
     val activeModules: List<ModuleId>

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lquiroz.flab.core.ModuleId
 import com.lquiroz.flab.core.PowerPosture
+import com.lquiroz.flab.core.PowerSignal
 import com.lquiroz.flab.core.SetupProgress
 import com.lquiroz.flab.core.SetupStep
 import com.lquiroz.flab.core.SetupStepId
@@ -417,9 +418,14 @@ private fun PerformanceCard(ui: FLabUiState, onNavigate: (FLabScreen) -> Unit) {
         PowerPosture.Conserving -> FLabColors.warning
         PowerPosture.Restricted -> FLabColors.danger
     }
+    // Names the signal, not just the posture: "conserving" on its own is nothing the user can act
+    // on, while "battery saver is on" is (DoD 43).
     val detail = when (ui.state.power) {
         PowerPosture.Normal -> ui.profile.id.summary
-        PowerPosture.Conserving -> "The device asked F/LAB to conserve power"
+        PowerPosture.Conserving -> when (ui.state.powerSignal) {
+            PowerSignal.BatterySaver -> "Battery saver is on — motion runs without blur or dim"
+            else -> "The device is warm — motion runs without blur or dim"
+        }
         PowerPosture.Restricted -> "Paused while the device cools down"
     }
     FLabCard(

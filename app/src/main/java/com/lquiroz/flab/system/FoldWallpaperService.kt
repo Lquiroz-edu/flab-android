@@ -180,7 +180,7 @@ class FoldWallpaperService : WallpaperService() {
                 }
 
                 for (unused in wake) {
-                    motionEngine.updateTuning(core.activeProfile.motion)
+                    motionEngine.updateTuning(core.effectiveMotionTuning)
                     while (motionEngine.needsFrames && visible) {
                         awaitFrame()
                         drawFrame(motionEngine.advance(System.nanoTime()))

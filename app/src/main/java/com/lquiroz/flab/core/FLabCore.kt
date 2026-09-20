@@ -10,6 +10,7 @@ import androidx.window.layout.WindowLayoutInfo
 import androidx.window.layout.WindowMetricsCalculator
 import com.lquiroz.flab.motion.EvidenceSource
 import com.lquiroz.flab.motion.FoldEvidence
+import com.lquiroz.flab.motion.MotionTuning
 import com.lquiroz.flab.profiles.FLabProfile
 import com.lquiroz.flab.profiles.ProfileId
 import com.lquiroz.flab.settings.FLabConfiguration
@@ -91,6 +92,14 @@ class FLabCore(
 
     val activeProfile: FLabProfile
         get() = FLabProfile.of(configuration.profileId)
+
+    /**
+     * The profile's motion tuning after the current power posture has had its say. Renderers read
+     * this, never `activeProfile.motion` directly — otherwise battery saver would be a fact the
+     * state knows and the frame loop ignores.
+     */
+    val effectiveMotionTuning: MotionTuning
+        get() = activeProfile.motion.forPower(_state.value.power)
 
     val isHingeSensorAvailable: Boolean get() = hingeSource.isAvailable
 
@@ -216,20 +225,31 @@ class FLabCore(
         if (module == ModuleId.FoldMotion) reevaluateContinuousTracking()
     }
 
+    /**
+     * Re-reads battery saver and thermal status.
+     *
+     * Conserving no longer stops Fold Motion — it drops the veil channels through
+     * [effectiveMotionTuning] and nothing else. That distinction is the difference between an app
+     * that visibly works on a real Galaxy Fold and one that silently does nothing: battery saver at
+     * 40% and a `THERMAL_STATUS_MODERATE` after a few minutes of use are both routine there, and
+     * treating either as "switch the whole feature off" left every effect dead while Home read ON.
+     */
     fun refreshPowerPosture() {
-        val posture = when {
-            powerManager == null -> PowerPosture.Normal
-            powerManager.isPowerSaveMode -> PowerPosture.Conserving
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                powerManager.currentThermalStatus >= PowerManager.THERMAL_STATUS_SEVERE ->
-                PowerPosture.Restricted
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                powerManager.currentThermalStatus >= PowerManager.THERMAL_STATUS_MODERATE ->
-                PowerPosture.Conserving
-            else -> PowerPosture.Normal
+        val thermal = if (powerManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            powerManager.currentThermalStatus
+        } else {
+            PowerManager.THERMAL_STATUS_NONE
         }
-        if (_state.value.power == posture) return
-        _state.value = _state.value.copy(power = posture)
+        val (posture, signal) = when {
+            powerManager == null -> PowerPosture.Normal to PowerSignal.None
+            thermal >= PowerManager.THERMAL_STATUS_SEVERE -> PowerPosture.Restricted to PowerSignal.Thermal
+            powerManager.isPowerSaveMode -> PowerPosture.Conserving to PowerSignal.BatterySaver
+            thermal >= PowerManager.THERMAL_STATUS_MODERATE -> PowerPosture.Conserving to PowerSignal.Thermal
+            else -> PowerPosture.Normal to PowerSignal.None
+        }
+        val current = _state.value
+        if (current.power == posture && current.powerSignal == signal) return
+        _state.value = current.copy(power = posture, powerSignal = signal)
         if (posture == PowerPosture.Restricted) {
             forceStopHingeTracking()
         } else {

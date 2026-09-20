@@ -11,7 +11,15 @@ enum class ModuleId(
     val displayName: String,
     /** Shown on the F/LAB Access screen so a permission request is never "turn this on because". */
     val purpose: String,
-    /** Whether the module keeps running once the device asks F/LAB to conserve power. */
+    /**
+     * Whether the module keeps running once the device asks F/LAB to conserve power.
+     *
+     * Fold Motion survives on purpose. Conserving means "drop the veil channels" — blur, dim,
+     * elevation, the only ones with a real GPU cost — not "stop following the hinge"; see
+     * `MotionTuning.withoutVeil`. Taking the whole module down here used to switch every visible
+     * effect in the app off the moment battery saver came on or the device got a little warm,
+     * which on a Samsung foldable is most of the time.
+     */
     val survivesPowerSaving: Boolean,
     /** Whether the module needs a permission beyond the normal app sandbox. */
     val requiresElevatedAccess: Boolean,
@@ -19,7 +27,7 @@ enum class ModuleId(
     FoldMotion(
         displayName = "Fold Motion",
         purpose = "Reads the hinge angle to drive opening and closing motion inside F/LAB.",
-        survivesPowerSaving = false,
+        survivesPowerSaving = true,
         requiresElevatedAccess = false,
     ),
     Continuity(

@@ -41,6 +41,8 @@ import com.lquiroz.flab.ui.theme.FLabColors
 fun AccessScreen(
     requirements: List<AccessRequirement>,
     systemEffects: SystemEffectsState,
+    canPreview: Boolean,
+    onPreview: () -> Unit,
     onToggleSystemEffects: (Boolean) -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
@@ -59,6 +61,8 @@ fun AccessScreen(
 
         SystemEffectsCard(
             systemEffects = systemEffects,
+            canPreview = canPreview,
+            onPreview = onPreview,
             onToggle = onToggleSystemEffects,
             onOpenOverlaySettings = onOpenOverlaySettings,
             onOpenAccessibilitySettings = onOpenAccessibilitySettings,
@@ -102,6 +106,8 @@ fun AccessScreen(
 @Composable
 private fun SystemEffectsCard(
     systemEffects: SystemEffectsState,
+    canPreview: Boolean,
+    onPreview: () -> Unit,
     onToggle: (Boolean) -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
@@ -193,6 +199,29 @@ private fun SystemEffectsCard(
                 text = "Running. A notification stays in your shade while this is on, with a " +
                     "one-tap stop — something that can draw over other apps should never be " +
                     "running invisibly.",
+                style = MaterialTheme.typography.bodySmall,
+                color = FLabColors.textSecondary,
+            )
+            Spacer(Modifier.height(14.dp))
+            FLabButton(
+                text = "Preview on this screen",
+                onClick = onPreview,
+                prominent = canPreview,
+                accent = if (canPreview) MaterialTheme.colorScheme.primary else FLabColors.textSecondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = if (canPreview) {
+                    "Plays a two-second fold over F/LAB itself, through the same system layer that " +
+                        "runs over other apps: the screen softens and dims while the pretend hinge " +
+                        "moves, then clears. The real effect only shows while the device is " +
+                        "actually moving, which on a Fold also switches displays under it — this " +
+                        "is the one place you can watch it happen on demand."
+                } else {
+                    "Not available while the device is conserving power — the veil channels this " +
+                        "layer draws are the part that stands down. See Performance on Home."
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = FLabColors.textSecondary,
             )

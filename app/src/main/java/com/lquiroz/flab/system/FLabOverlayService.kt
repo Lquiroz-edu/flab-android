@@ -18,6 +18,8 @@ import com.lquiroz.flab.FLabApplication
 import com.lquiroz.flab.MainActivity
 import com.lquiroz.flab.R
 import com.lquiroz.flab.core.ModuleId
+import com.lquiroz.flab.motion.EvidenceSource
+import com.lquiroz.flab.motion.FoldEvidence
 import com.lquiroz.flab.motion.FoldMotionEngine
 import com.lquiroz.flab.motion.MotionChannels
 import com.lquiroz.flab.profiles.AppProfile
@@ -29,10 +31,13 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
 
 /**
  * Hosts the system-wide fold effect (see [FoldOverlayWindow]).
@@ -60,6 +65,10 @@ class FLabOverlayService : Service() {
     private val engine = FoldMotionEngine()
     private lateinit var overlay: FoldOverlayWindow
     private var loopJob: Job? = null
+    private var previewJob: Job? = null
+
+    /** Wakes the frame loop. Conflated: many samples, one wake-up. */
+    private val wake = Channel<Unit>(Channel.CONFLATED)
 
     /** Latest per-app overrides, kept off the frame path. See [observe]. */
     private var appOverrides: List<AppProfile> = emptyList()
@@ -78,9 +87,12 @@ class FLabOverlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_PREVIEW -> runPreview()
         }
         // START_STICKY: after a fold cycle that killed the process, come back. Not
         // START_REDELIVER_INTENT — there is no work to redo, only state to re-read.
@@ -90,6 +102,7 @@ class FLabOverlayService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        previewJob?.cancel()
         loopJob?.cancel()
         // Releases the hinge listener the service asked to keep alive. Skipping this would leave
         // the sensor registered for the rest of the process after the service stopped.
@@ -124,7 +137,6 @@ class FLabOverlayService : Service() {
         }
 
         loopJob = scope.launch {
-            val wake = Channel<Unit>(Channel.CONFLATED)
             launch {
                 core.evidence.collect { evidence ->
                     engine.submit(evidence)
@@ -132,8 +144,34 @@ class FLabOverlayService : Service() {
                 }
             }
             for (unused in wake) {
-                engine.updateTuning(core.activeProfile.motion)
+                engine.updateTuning(core.effectiveMotionTuning)
                 runLoop()
+            }
+        }
+    }
+
+    /**
+     * A synthetic fold — closed, open, closed again over a couple of seconds — fed to the engine as
+     * `Manual` evidence and drawn through exactly the same loop, policy and window as a real one.
+     *
+     * This exists because the real effect is, by design, only visible while the hinge is moving,
+     * and a fold on a Galaxy Fold also switches displays under it; the honest way to let someone
+     * confirm the layer works at all is to run it over the app they are already looking at. Nothing
+     * is special-cased: if the policy would refuse (protected app, power saving, locked), the
+     * preview refuses too, and Diagnostics says why.
+     */
+    private fun runPreview() {
+        if (previewJob?.isActive == true) return
+        previewJob = scope.launch {
+            val start = System.nanoTime()
+            while (true) {
+                val now = System.nanoTime()
+                val t = ((now - start).toFloat() / PREVIEW_DURATION_NANOS).coerceIn(0f, 1f)
+                val progress = 0.5f - 0.5f * cos(t * 2.0 * PI).toFloat()
+                engine.submit(FoldEvidence(progress, EvidenceSource.Manual, now))
+                wake.trySend(Unit)
+                if (t >= 1f) break
+                delay(PREVIEW_SAMPLE_MILLIS)
             }
         }
     }
@@ -227,6 +265,11 @@ class FLabOverlayService : Service() {
         private const val CHANNEL_ID = "flab_system_effects"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "com.lquiroz.flab.STOP_OVERLAY"
+        const val ACTION_PREVIEW = "com.lquiroz.flab.PREVIEW_OVERLAY"
+
+        /** Slow enough to read as a fold, fast enough to carry real energy through the veil easing. */
+        private const val PREVIEW_DURATION_NANOS = 2_400_000_000L
+        private const val PREVIEW_SAMPLE_MILLIS = 16L
 
         private val running = MutableStateFlow(false)
         private val lastVerdict = MutableStateFlow(OverlayVerdict.ModuleOff)
@@ -245,6 +288,15 @@ class FLabOverlayService : Service() {
 
         fun stop(context: Context) {
             runCatching { context.stopService(Intent(context, FLabOverlayService::class.java)) }
+        }
+
+        /** Runs [runPreview] on the live service. A no-op if the service is not allowed to start. */
+        fun preview(context: Context) {
+            runCatching {
+                context.startForegroundService(
+                    Intent(context, FLabOverlayService::class.java).setAction(ACTION_PREVIEW),
+                )
+            }
         }
     }
 }

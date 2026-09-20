@@ -13,7 +13,10 @@ import com.lquiroz.flab.core.EngineStatus
 import com.lquiroz.flab.core.Experiments
 import com.lquiroz.flab.core.FLabState
 import com.lquiroz.flab.core.ModuleId
+import com.lquiroz.flab.core.PowerPosture
 import com.lquiroz.flab.core.SetupProgress
+import com.lquiroz.flab.core.forPower
+import com.lquiroz.flab.motion.MotionTuning
 import com.lquiroz.flab.diagnostics.AccessRequirement
 import com.lquiroz.flab.diagnostics.DebugReport
 import com.lquiroz.flab.diagnostics.DeviceReport
@@ -59,6 +62,13 @@ data class FLabUiState(
     val systemEffects: SystemEffectsState = SystemEffectsState(),
 ) {
     val configuredAppCount: Int get() = appProfiles.count { !it.isDisabled }
+
+    /** The tuning F/LAB's own screens actually animate with, power posture included. */
+    val effectiveMotion: MotionTuning get() = profile.motion.forPower(state.power)
+
+    /** Whether the System effects preview can show anything right now (see `SystemEffectPolicy`). */
+    val canPreviewSystemEffects: Boolean
+        get() = systemEffects.enabled && systemEffects.canRun && state.power == PowerPosture.Normal
 
     /** The Home health line from DoD 43. */
     val healthLine: String
@@ -244,6 +254,9 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
         }
         refreshAccess()
     }
+
+    /** Runs the system-wide effect over F/LAB's own window for a moment, so it can be seen at all. */
+    fun previewSystemEffects() = FLabOverlayService.preview(getApplication())
 
     /** Re-reads grants made outside the app. Called when F/LAB returns to the foreground. */
     fun refreshAccess() {
