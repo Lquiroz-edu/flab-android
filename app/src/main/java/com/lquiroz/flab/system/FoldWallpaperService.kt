@@ -24,6 +24,7 @@ import androidx.core.graphics.scale
 import androidx.core.graphics.withClip
 import com.lquiroz.flab.FLabApplication
 import com.lquiroz.flab.core.FLabCore
+import com.lquiroz.flab.core.INNER_DISPLAY_MIN_DP
 import com.lquiroz.flab.motion.FoldMotionEngine
 import com.lquiroz.flab.motion.MotionChannels
 import kotlinx.coroutines.CoroutineScope
@@ -104,6 +105,15 @@ class FoldWallpaperService : WallpaperService() {
         private var batteryReceiver: BroadcastReceiver? = null
 
         private val core: FLabCore get() = (application as FLabApplication).core
+
+        /**
+         * The pinch belongs to the panel with a hinge through its middle. The cover display is a
+         * separate flat panel, and a wallpaper pinched at its centre while the device is closed
+         * would read as damage, not as folding.
+         */
+        private val isInnerSurface: Boolean
+            get() = minOf(surfaceWidth, surfaceHeight) / resources.displayMetrics.density >=
+                INNER_DISPLAY_MIN_DP
 
         override fun onSurfaceChanged(
             holder: SurfaceHolder,
@@ -222,7 +232,7 @@ class FoldWallpaperService : WallpaperService() {
                 FoldWarpMesh.buildVertices(
                     surfaceWidth.toFloat(),
                     surfaceHeight.toFloat(),
-                    channels.warpAmount,
+                    if (isInnerSurface) channels.warpAmount else 0f,
                     warpVertices,
                 )
                 canvas.drawBitmapMesh(

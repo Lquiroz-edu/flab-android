@@ -29,6 +29,13 @@ enum class ScreenOrientation(val label: String) {
     Landscape("Landscape"),
 }
 
+/**
+ * A window whose smaller side is at least this wide is a Fold's inner display. Shared by the Core's
+ * own guess, F/LAB Home's column count and the wallpaper's warp gate, so all three agree on which
+ * panel they are looking at.
+ */
+const val INNER_DISPLAY_MIN_DP = 560
+
 /** Which physical panel the app is currently on, as far as we can tell. */
 enum class ActiveDisplay(val label: String) {
     Cover("Cover display"),

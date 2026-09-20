@@ -44,6 +44,17 @@ data class MotionChannels(
      * `FoldWallpaperService`'s bitmap-mesh warp; meaningless to anything else.
      */
     val warpAmount: Float = 0f,
+    /**
+     * The cover-display hand-off, `0f`..`1f`: how far the cover's content has been drawn toward the
+     * hinge as the device starts to open. On a Fold the inner panel only lights up part-way through
+     * the opening, so the Duo's "one continuous motion from the first degree" has to begin on the
+     * cover: content flows toward the spine from 0°, and when the inner display takes over, it is
+     * already pinched at that same hinge and continues the movement. A bell over progress — zero
+     * at rest closed (the cover must sit still), peaking at [HANDOFF_PEAK_PROGRESS] where the panel
+     * switch happens, gone by [HANDOFF_END_PROGRESS] — so it can never leave an open device or a
+     * closed one displaced. Position-driven, like [warpAmount]. Consumed by F/LAB Home only.
+     */
+    val handoffAmount: Float = 0f,
 ) {
     /** True when this frame is visually identical to doing nothing, so the layer can be skipped. */
     val isNeutral: Boolean
@@ -54,7 +65,8 @@ data class MotionChannels(
             elevationDp == 0f &&
             translationYDp == 0f &&
             expansion == 1f &&
-            warpAmount == 0f
+            warpAmount == 0f &&
+            handoffAmount == 0f
 
     companion object {
         val Neutral = MotionChannels(
@@ -66,7 +78,16 @@ data class MotionChannels(
             translationYDp = 0f,
             expansion = 1f,
             warpAmount = 0f,
+            handoffAmount = 0f,
         )
+
+        /**
+         * Where the hand-off peaks: roughly the angle at which a Galaxy Fold wakes its inner
+         * display (about 45° of 180°). Not read from the device — no API reports it — so the bell
+         * is wide enough that being off by ten degrees either way still reads as one motion.
+         */
+        const val HANDOFF_PEAK_PROGRESS = 0.25f
+        const val HANDOFF_END_PROGRESS = 0.5f
 
         /** Hard ceilings. Exceeding any of these is a DoD 30 "visible artifact" bug, not a taste call. */
         const val MAX_BLUR_DP = 18f
@@ -123,10 +144,26 @@ object MotionChannelMapper {
             // Position-driven, same family as scale and offset: strongest closed, gone once flat.
             warpAmount = MotionChannels.MAX_WARP *
                 (1f - easeInOutCubic(progress)) * tuning.warpIntensity,
+            handoffAmount = handoffBell(progress) * tuning.warpIntensity,
         )
     }
 
     private const val MIN_EXPANSION = 0.9f
+
+    /** Rises over the first quarter of the opening, falls away over the second. See [MotionChannels.handoffAmount]. */
+    private fun handoffBell(progress: Float): Float {
+        val rise = smoothstep(progress / MotionChannels.HANDOFF_PEAK_PROGRESS)
+        val fall = 1f - smoothstep(
+            (progress - MotionChannels.HANDOFF_PEAK_PROGRESS) /
+                (MotionChannels.HANDOFF_END_PROGRESS - MotionChannels.HANDOFF_PEAK_PROGRESS),
+        )
+        return rise * fall
+    }
+
+    private fun smoothstep(x: Float): Float {
+        val t = x.coerceIn(0f, 1f)
+        return t * t * (3f - 2f * t)
+    }
 
     private fun lerp(start: Float, stop: Float, fraction: Float): Float =
         start + (stop - start) * fraction.coerceIn(0f, 1f)

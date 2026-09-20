@@ -62,9 +62,29 @@ class MotionChannelsTest {
                     assertTrue("alpha", channels.contentAlpha in MIN_CONTENT_ALPHA..1f)
                     assertTrue("scale", channels.contentScale in MIN_CONTENT_SCALE..1f)
                     assertTrue("warp", channels.warpAmount in 0f..MAX_WARP)
+                    assertTrue("hand-off", channels.handoffAmount in 0f..1f)
                 }
             }
         }
+    }
+
+    @Test
+    fun `the hand-off starts at the first degree, peaks at the panel switch and is gone by half open`() {
+        val at = { progress: Float ->
+            MotionChannelMapper.map(frame(progress, energy = 0f), MotionTuning.Balanced).handoffAmount
+        }
+        assertEquals("a closed device at rest must sit still", 0f, at(0f), 0f)
+        assertEquals(1f, at(MotionChannels.HANDOFF_PEAK_PROGRESS), 0.001f)
+        assertEquals(0f, at(MotionChannels.HANDOFF_END_PROGRESS), 0.001f)
+        assertEquals("an open device must never be displaced", 0f, at(1f), 0f)
+
+        var previous = 0f
+        for (step in 1..10) {
+            val value = at(step / 10f * MotionChannels.HANDOFF_PEAK_PROGRESS)
+            assertTrue("hand-off must grow with the opening", value >= previous)
+            previous = value
+        }
+        assertEquals(0f, MotionChannelMapper.map(frame(0.2f, 0f), MotionTuning.Battery).handoffAmount, 0f)
     }
 
     @Test

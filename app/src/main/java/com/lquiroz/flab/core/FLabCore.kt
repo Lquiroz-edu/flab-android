@@ -467,8 +467,6 @@ class FLabCore(
     }
 
     private companion object {
-        /** Below this smallest-width, a foldable window is almost certainly the cover display. */
-        const val INNER_DISPLAY_MIN_DP = 560
         const val FREEFORM_MAX_DP = 500
     }
 }

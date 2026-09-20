@@ -155,6 +155,13 @@ Optional — the user picks it in the system's default-home dialog from the card
 stays installed. `HomeLayoutTest` pins the geometry, including that icons never cross at the
 strongest pinch. See `docs/CAPABILITIES.md` for exactly what it reads.
 
+The motion starts at the first degree, not at the panel switch: on the cover display the home holds
+the hinge listener open while it is on screen (as the wallpaper does) and draws itself toward the
+hinge edge as the opening begins (`MotionChannels.handoffAmount`, a bell over progress that is zero
+at rest closed and gone by half open, pinned by `MotionChannelsTest`), so the inner display picks
+the content up already pinched at the same hinge. What it cannot do, and no app can: keep both
+panels lit at once — Android exposes them as one logical display and Samsung decides the switch.
+
 ### 11. Live Preview — **Done**
 `ui/screens/FoldMotionScreen.kt`. The scrubber feeds the same `MotionChannelMapper` at the same
 tuning as the live engine, so stopping mid-drag demonstrates the DoD 3 property directly. Preview

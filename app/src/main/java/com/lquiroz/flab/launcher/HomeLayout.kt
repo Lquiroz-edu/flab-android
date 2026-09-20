@@ -1,5 +1,6 @@
 package com.lquiroz.flab.launcher
 
+import com.lquiroz.flab.core.INNER_DISPLAY_MIN_DP
 import com.lquiroz.flab.system.FoldWarpMesh
 
 /**
@@ -31,8 +32,8 @@ object HomeLayout {
     const val INNER_COLUMNS = 6
     const val MAX_ROWS = 6
 
-    /** A window at least this wide is a Fold's inner display; matches the Core's own guess. */
-    const val INNER_MIN_WIDTH_DP = 560
+    /** A window at least this wide is a Fold's inner display; the Core's own threshold. */
+    const val INNER_MIN_WIDTH_DP = INNER_DISPLAY_MIN_DP
 
     fun columnsFor(widthDp: Int): Int =
         if (widthDp >= INNER_MIN_WIDTH_DP) INNER_COLUMNS else COVER_COLUMNS

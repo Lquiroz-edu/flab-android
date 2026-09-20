@@ -58,6 +58,24 @@ fun FoldMotionHost(
     onSettled: () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
+    val channelsState = rememberFoldMotionChannels(evidence, tuning, enabled, onSettled)
+    CompositionLocalProvider(LocalMotionChannels provides channelsState) {
+        MotionLayer(channelsState.value, modifier, content)
+    }
+}
+
+/**
+ * The frame loop on its own, for a surface that applies the channels its own way — F/LAB Home
+ * keeps its icons where they are on the cover and bends them on the inner display, which is not
+ * what [MotionLayer] does. Same loop, same discipline; only the drawing differs.
+ */
+@Composable
+fun rememberFoldMotionChannels(
+    evidence: Flow<FoldEvidence>,
+    tuning: MotionTuning,
+    enabled: Boolean = true,
+    onSettled: () -> Unit = {},
+): State<MotionChannels> {
     val engine = remember { FoldMotionEngine(tuning) }
     val channelsState = remember { mutableStateOf(MotionChannels.Neutral) }
     var channels by channelsState
@@ -92,15 +110,13 @@ fun FoldMotionHost(
         }
     }
 
-    CompositionLocalProvider(LocalMotionChannels provides channelsState) {
-        MotionLayer(channels, modifier, content)
-    }
+    return channelsState
 }
 
 /**
  * The live channels of the nearest [FoldMotionHost], as a [State] rather than a value on purpose:
- * a layout that reads `.value` inside its placement block is re-placed on every frame of a fold
- * and never recomposed or re-measured for it. F/LAB Home's icon grid is the consumer.
+ * a layout that reads `.value` inside its placement block, or a `graphicsLayer` block, is updated
+ * on every frame of a fold without being recomposed or re-measured for it.
  */
 val LocalMotionChannels = staticCompositionLocalOf<State<MotionChannels>> {
     mutableStateOf(MotionChannels.Neutral)

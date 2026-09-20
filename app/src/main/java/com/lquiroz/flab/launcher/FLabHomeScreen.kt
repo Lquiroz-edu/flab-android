@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +42,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -51,7 +54,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lquiroz.flab.ui.motion.LocalMotionChannels
+import com.lquiroz.flab.motion.MotionChannels
+import com.lquiroz.flab.ui.motion.MotionLayer
 import com.lquiroz.flab.ui.theme.FLabTokens
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -60,8 +64,11 @@ import kotlin.math.roundToInt
  * The home screen itself: a chip row, pages of icons, page dots, a dock — over whatever wallpaper
  * the system is showing behind the window.
  *
- * Two motions are layered here, and they come from the same engine:
+ * Three motions are layered here, and they come from the same engine:
  *
+ *  - The cover hand-off, from the first degree. On the cover the whole home is drawn toward the
+ *    hinge edge, shrinks a little and fades as the opening begins (`handoffAmount`), so that when
+ *    One UI wakes the inner panel the content is already "in the fold" and simply continues.
  *  - The Duo pinch. Every icon's horizontal position passes through [HomeLayout.warpX] with the
  *    live `warpAmount`, read in the *placement* block only, so a moving hinge re-places icons
  *    without recomposing or re-measuring anything. Applied only on a wide (inner) window — the
@@ -72,6 +79,7 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun FLabHomeScreen(
+    channels: State<MotionChannels>,
     catalogue: LauncherCatalogue,
     homePresses: Int,
     isDefaultHome: Boolean,
@@ -83,11 +91,67 @@ fun FLabHomeScreen(
     onAppDetails: (LauncherEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val channels = LocalMotionChannels.current
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val wide = maxWidth >= HomeLayout.INNER_MIN_WIDTH_DP.dp
+        // The app's own screens sit slightly scaled and lowered while the device is closed and
+        // grow into place as it opens. A home screen on the cover cannot: at rest it has to be
+        // exactly where it is, or the wallpaper shows as a border around it. The cover gets the
+        // veil and the hand-off; the inner display gets everything.
+        val live = channels.value
+        val layered = if (wide) {
+            live
+        } else {
+            live.copy(contentScale = 1f, translationYDp = 0f, elevationDp = 0f, expansion = 1f)
+        }
+        MotionLayer(layered, Modifier.fillMaxSize()) {
+            HomeContent(
+                wide = wide,
+                channels = channels,
+                catalogue = catalogue,
+                homePresses = homePresses,
+                isDefaultHome = isDefaultHome,
+                isFoldWallpaperActive = isFoldWallpaperActive,
+                onRequestDefaultHome = onRequestDefaultHome,
+                onSetWallpaper = onSetWallpaper,
+                onOpenFLab = onOpenFLab,
+                onLaunch = onLaunch,
+                onAppDetails = onAppDetails,
+            )
+        }
+    }
+}
 
+@Composable
+private fun HomeContent(
+    wide: Boolean,
+    channels: State<MotionChannels>,
+    catalogue: LauncherCatalogue,
+    homePresses: Int,
+    isDefaultHome: Boolean,
+    isFoldWallpaperActive: Boolean,
+    onRequestDefaultHome: () -> Unit,
+    onSetWallpaper: () -> Unit,
+    onOpenFLab: () -> Unit,
+    onLaunch: (LauncherEntry, Rect) -> Unit,
+    onAppDetails: (LauncherEntry) -> Unit,
+) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
+            .graphicsLayer {
+                // The cover hand-off (see MotionChannels.handoffAmount). On a Galaxy Fold the
+                // hinge is the cover display's left edge — the closed device opens like a book
+                // with the spine on the left — so the whole home is drawn toward that edge,
+                // shrinks a little and fades as the opening begins, and the inner display picks
+                // the same content up pinched at the same hinge. Read here, in the draw block:
+                // a moving hinge redraws this layer and recomposes nothing.
+                val handoff = if (wide) 0f else channels.value.handoffAmount
+                transformOrigin = TransformOrigin(0f, 0.5f)
+                translationX = -handoff * size.width * HANDOFF_TRAVEL
+                scaleX = 1f - HANDOFF_SHRINK * handoff
+                scaleY = 1f - HANDOFF_SHRINK * handoff
+                alpha = 1f - HANDOFF_FADE * handoff
+            }
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 12.dp),
@@ -108,7 +172,6 @@ fun FLabHomeScreen(
                 .fillMaxWidth(),
         ) {
             val density = LocalDensity.current
-            val wide = maxWidth >= HomeLayout.INNER_MIN_WIDTH_DP.dp
             val columns = HomeLayout.columnsFor(maxWidth.value.toInt())
             val spec = remember(maxWidth, maxHeight, columns) {
                 with(density) {
@@ -382,3 +445,8 @@ private val DOTS_HEIGHT = 20.dp
 private val MIN_CELL_HEIGHT = 104.dp
 private const val ICON_FRACTION_OF_CELL = 0.62f
 private const val ICON_CORNER_PERCENT = 24
+
+/** How far, as a fraction of the cover's width, the home travels toward the hinge at full hand-off. */
+private const val HANDOFF_TRAVEL = 0.22f
+private const val HANDOFF_SHRINK = 0.10f
+private const val HANDOFF_FADE = 0.35f

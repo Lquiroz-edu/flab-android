@@ -24,7 +24,7 @@ import com.lquiroz.flab.FLabApplication
 import com.lquiroz.flab.MainActivity
 import com.lquiroz.flab.system.SystemAccess
 import com.lquiroz.flab.ui.FLabViewModel
-import com.lquiroz.flab.ui.motion.FoldMotionHost
+import com.lquiroz.flab.ui.motion.rememberFoldMotionChannels
 import com.lquiroz.flab.ui.theme.FLabTheme
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,9 +68,16 @@ class HomeLauncherActivity : ComponentActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 core.attach(this@HomeLauncherActivity)
                 core.onForegroundPackage(packageName)
+                // The hand-off has to begin at the first degree, and on the cover nothing else
+                // announces that the device has started to open: no posture event fires until the
+                // inner panel wakes. So while the home screen is on screen it holds the hinge
+                // listener open, exactly as the wallpaper does while it is visible, and lets go the
+                // moment it is not.
+                core.requestContinuousTracking(this@HomeLauncherActivity)
                 try {
                     awaitCancellation()
                 } finally {
+                    core.releaseContinuousTracking(this@HomeLauncherActivity)
                     core.detach(this@HomeLauncherActivity)
                 }
             }
@@ -84,25 +91,25 @@ class HomeLauncherActivity : ComponentActivity() {
                 val defaultHome by isDefaultHome.collectAsStateWithLifecycle()
                 val wallpaperActive by isFoldWallpaperActive.collectAsStateWithLifecycle()
 
-                FoldMotionHost(
+                val channels = rememberFoldMotionChannels(
                     evidence = flab.evidence,
                     tuning = ui.effectiveMotion,
                     enabled = ui.configuration.enabled,
                     onSettled = flab::onMotionSettled,
+                )
+                FLabHomeScreen(
+                    channels = channels,
+                    catalogue = catalogue,
+                    homePresses = homePresses,
+                    isDefaultHome = defaultHome,
+                    isFoldWallpaperActive = wallpaperActive,
+                    onRequestDefaultHome = ::requestDefaultHome,
+                    onSetWallpaper = { open(flab.liveWallpaperIntent()) },
+                    onOpenFLab = { open(Intent(this, MainActivity::class.java)) },
+                    onLaunch = ::launch,
+                    onAppDetails = launcher::openAppDetails,
                     modifier = Modifier.fillMaxSize(),
-                ) {
-                    FLabHomeScreen(
-                        catalogue = catalogue,
-                        homePresses = homePresses,
-                        isDefaultHome = defaultHome,
-                        isFoldWallpaperActive = wallpaperActive,
-                        onRequestDefaultHome = ::requestDefaultHome,
-                        onSetWallpaper = { open(flab.liveWallpaperIntent()) },
-                        onOpenFLab = { open(Intent(this, MainActivity::class.java)) },
-                        onLaunch = ::launch,
-                        onAppDetails = launcher::openAppDetails,
-                    )
-                }
+                )
             }
         }
     }
