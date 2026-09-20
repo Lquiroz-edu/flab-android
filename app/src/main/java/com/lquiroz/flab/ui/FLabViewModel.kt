@@ -350,6 +350,7 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
             systemEffects = systemEffectsReport(),
             displays = DisplayProbe.probe(getApplication()),
             coverBridgeStatus = CoverDisplayBridge.status.value,
+            coverBridgeLog = CoverDisplayBridge.log.value,
         )
     }
 

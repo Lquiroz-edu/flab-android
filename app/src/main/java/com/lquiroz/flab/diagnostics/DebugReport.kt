@@ -54,7 +54,7 @@ object DebugReport {
         appendLine("  Progress       ${state.fold.progress.format()}")
         appendLine("  Hinge angle    ${state.fold.hingeAngleDegrees?.format()?.plus("°") ?: "not reported"}")
         appendLine("  Evidence       ${state.fold.evidenceSource.label}")
-        appendLine("  Transitioning  ${state.fold.isTransitioning.yesNo()}")
+        appendLine("  Hinge listener ${if (state.fold.isHingeTracking) "active" else "idle"}")
         appendLine("  Separating     ${state.fold.isSeparating.yesNo()}")
         appendLine()
 
@@ -99,10 +99,15 @@ object DebugReport {
         appendLine("Displays")
         if (snapshot.displays.isEmpty()) appendLine("  none reported")
         snapshot.displays.forEach { display ->
-            val default = if (display.isDefault) " (default)" else ""
-            appendLine("  #${display.id} ${display.name}$default: ${display.widthPx}x${display.heightPx}, ${display.state}")
+            val tags = listOfNotNull(
+                "default".takeIf { display.isDefault },
+                "disabled".takeIf { display.hidden },
+            )
+            val suffix = if (tags.isEmpty()) "" else " (${tags.joinToString()})"
+            appendLine("  #${display.id} ${display.name}$suffix: ${display.widthPx}x${display.heightPx}, ${display.state}")
         }
         appendLine("  Cover bridge   ${snapshot.coverBridgeStatus ?: "not started"}")
+        snapshot.coverBridgeLog.forEach { appendLine("    $it") }
         appendLine()
 
         appendLine("Compatibility")

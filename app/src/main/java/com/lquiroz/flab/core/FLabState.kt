@@ -170,8 +170,12 @@ data class FoldState(
     val hingeAngleDegrees: Float? = null,
     val evidenceSource: EvidenceSource = EvidenceSource.PostureEvent,
     val isSeparating: Boolean = false,
-    /** True while progress is still travelling, i.e. the frame loop is running. */
-    val isTransitioning: Boolean = false,
+    /**
+     * True while the hinge-angle listener is registered. Not "motion in flight": with a background
+     * consumer holding continuous tracking this is simply true, and Diagnostics labels it as what
+     * it is rather than implying the device is moving.
+     */
+    val isHingeTracking: Boolean = false,
 ) {
     /** True when the device reports a hinge at all — false on a phone or a tablet. */
     val isFoldable: Boolean

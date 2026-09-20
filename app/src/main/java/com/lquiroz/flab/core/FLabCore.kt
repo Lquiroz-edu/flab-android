@@ -350,11 +350,12 @@ class FLabCore(
         if (!hingeSource.isAvailable) return
         if (!_state.value.isModuleRunning(ModuleId.FoldMotion)) return
 
-        markTransitioning(true)
+        markHingeTracking(true)
         hingeJob = hingeSource.angles()
             .onEach { degrees ->
+                val progress = hingeSource.normalise(degrees)
                 _evidence.value = FoldEvidence(
-                    progress = hingeSource.normalise(degrees),
+                    progress = progress,
                     source = EvidenceSource.HingeAngle,
                     timestampNanos = System.nanoTime(),
                 )
@@ -363,6 +364,7 @@ class FLabCore(
                     _state.value = _state.value.copy(
                         fold = fold.copy(
                             hingeAngleDegrees = degrees,
+                            progress = progress,
                             evidenceSource = EvidenceSource.HingeAngle,
                         ),
                     )
@@ -428,13 +430,13 @@ class FLabCore(
     private fun forceStopHingeTracking() {
         hingeJob?.cancel()
         hingeJob = null
-        markTransitioning(false)
+        markHingeTracking(false)
     }
 
-    private fun markTransitioning(transitioning: Boolean) {
+    private fun markHingeTracking(tracking: Boolean) {
         val current = _state.value
-        if (current.fold.isTransitioning == transitioning) return
-        _state.value = current.copy(fold = current.fold.copy(isTransitioning = transitioning))
+        if (current.fold.isHingeTracking == tracking) return
+        _state.value = current.copy(fold = current.fold.copy(isHingeTracking = tracking))
     }
 
     /**

@@ -78,7 +78,7 @@ fun DiagnosticsScreen(
                 snapshot.state.fold.hingeAngleDegrees?.let { "%.1f°".format(it) } ?: "Not reported",
             )
             KeyValueRow("Evidence source", snapshot.state.fold.evidenceSource.label)
-            KeyValueRow("Transitioning", snapshot.state.fold.isTransitioning.yesNo())
+            KeyValueRow("Hinge listener", if (snapshot.state.fold.isHingeTracking) "Active" else "Idle")
             KeyValueRow("Active display", snapshot.state.window.display.label)
             KeyValueRow(
                 "Window",
@@ -157,8 +157,13 @@ fun DiagnosticsScreen(
             SectionLabel("Displays")
             Spacer(Modifier.height(10.dp))
             snapshot.displays.forEach { display ->
+                val tags = buildList {
+                    if (display.isDefault) add("default")
+                    if (display.hidden) add("disabled")
+                }
                 KeyValueRow(
-                    label = "#${display.id} ${display.name}" + if (display.isDefault) " (default)" else "",
+                    label = "#${display.id} ${display.name}" +
+                        if (tags.isEmpty()) "" else " (${tags.joinToString()})",
                     value = "${display.widthPx}×${display.heightPx} · ${display.state}",
                 )
             }
@@ -169,6 +174,14 @@ fun DiagnosticsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = FLabColors.textSecondary,
             )
+            snapshot.coverBridgeLog.forEach { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FLabColors.textSecondary,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "F/LAB Home mirrors itself onto a second display, if the device exposes " +

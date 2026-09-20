@@ -55,6 +55,12 @@ data class DisplayReport(
     val heightPx: Int,
     val state: String,
     val isDefault: Boolean,
+    /**
+     * Returned only by the all-including-disabled query, not by the plain one. AOSP foldables do
+     * not remove the inactive panel's display, they *disable* it, and a disabled display is hidden
+     * from the ordinary listing — so this is where a cover panel would show up, if anywhere.
+     */
+    val hidden: Boolean = false,
 )
 
 /**
@@ -90,6 +96,8 @@ data class DiagnosticsSnapshot(
     val displays: List<DisplayReport> = emptyList(),
     /** What F/LAB Home's cover-display bridge last did, in its own words. */
     val coverBridgeStatus: String? = null,
+    /** The bridge's recent display events, newest last — what the platform did during a fold. */
+    val coverBridgeLog: List<String> = emptyList(),
 ) {
     val hasBlockingIssue: Boolean
         get() = access.any { !it.granted && !it.experimental } ||

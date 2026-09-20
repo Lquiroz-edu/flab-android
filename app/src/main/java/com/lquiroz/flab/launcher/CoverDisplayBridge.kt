@@ -4,6 +4,7 @@ import android.app.Presentation
 import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Display
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import com.lquiroz.flab.diagnostics.DisplayProbe
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,14 +57,32 @@ class CoverDisplayBridge(
     private var wanted = false
 
     private val listener = object : DisplayManager.DisplayListener {
-        override fun onDisplayAdded(displayId: Int) = reconcile()
-        override fun onDisplayRemoved(displayId: Int) = reconcile()
-        override fun onDisplayChanged(displayId: Int) = reconcile()
+        override fun onDisplayAdded(displayId: Int) = onEvent("added", displayId)
+        override fun onDisplayRemoved(displayId: Int) = onEvent("removed", displayId)
+        override fun onDisplayChanged(displayId: Int) = onEvent("changed", displayId)
     }
 
     fun start() {
         displayManager?.registerDisplayListener(listener, Handler(Looper.getMainLooper()))
+        val seen = displayManager?.let { DisplayProbe.allDisplays(it) }.orEmpty()
+        log("start: ${seen.size} display(s) — ${seen.joinToString { describe(it) }}")
         report("Idle")
+    }
+
+    /**
+     * Every display event, with what the platform said at that moment. A fold is the only time a
+     * hidden cover panel could appear, so this is the record Diagnostics needs: not whether a second
+     * display exists at rest, but whether one ever did.
+     */
+    private fun onEvent(kind: String, displayId: Int) {
+        val display = displayManager?.getDisplay(displayId)
+        log("$kind #$displayId" + (display?.let { " → ${describe(it)}" } ?: ""))
+        reconcile()
+    }
+
+    private fun describe(display: Display): String {
+        val mode = display.mode
+        return "#${display.displayId} “${display.name}” ${mode.physicalWidth}×${mode.physicalHeight} ${stateLabel(display.state)}"
     }
 
     fun setWanted(wanted: Boolean) {
@@ -81,13 +101,13 @@ class CoverDisplayBridge(
         val target = if (wanted) otherDisplay() else null
         if (target == null) {
             dismiss()
-            report(
-                when {
-                    !wanted -> "Idle"
-                    displayManager == null -> "No DisplayManager"
-                    else -> "No second display exposed (${displayManager.displays.size} total)"
-                },
-            )
+            val status = when {
+                !wanted -> "Idle"
+                displayManager == null -> "No DisplayManager"
+                else -> "No second display exposed (${DisplayProbe.allDisplays(displayManager).size} total, disabled included)"
+            }
+            if (wanted) log(status)
+            report(status)
             return
         }
         val current = presentation
@@ -98,7 +118,11 @@ class CoverDisplayBridge(
 
     private fun otherDisplay(): Display? {
         val own = ContextCompat.getDisplayOrDefault(activity).displayId
-        return displayManager?.displays?.firstOrNull { it.displayId != own && it.isValid }
+        val manager = displayManager ?: return null
+        // Disabled displays included: on an AOSP foldable the inactive panel is disabled rather
+        // than removed, and Presentation.show() is the only way to learn whether it will take a
+        // window. A refusal is caught and reported, never thrown at the user.
+        return DisplayProbe.allDisplays(manager).firstOrNull { it.displayId != own && it.isValid }
     }
 
     private fun show(display: Display) {
@@ -124,12 +148,15 @@ class CoverDisplayBridge(
         runCatching { fresh.show() }
             .onSuccess {
                 presentation = fresh
-                report(
-                    "Presenting on display ${display.displayId} “${display.name}” " +
-                        "(${stateLabel(display.state)})",
-                )
+                val status = "Presenting on ${describe(display)}"
+                log(status)
+                report(status)
             }
-            .onFailure { report("Presentation refused on display ${display.displayId}: ${it.javaClass.simpleName}") }
+            .onFailure {
+                val status = "Presentation refused on #${display.displayId}: ${it.javaClass.simpleName}"
+                log(status)
+                report(status)
+            }
     }
 
     private fun dismiss() {
@@ -150,10 +177,21 @@ class CoverDisplayBridge(
         lastStatus.value = status
     }
 
+    private fun log(line: String) {
+        val stamp = "+${(SystemClock.elapsedRealtime() - startedAt) / 1000}s"
+        events.value = (events.value + "$stamp $line").takeLast(LOG_LINES)
+    }
+
     companion object {
+        private const val LOG_LINES = 12
+        private val startedAt = SystemClock.elapsedRealtime()
         private val lastStatus = MutableStateFlow("Not started")
+        private val events = MutableStateFlow<List<String>>(emptyList())
 
         /** What the bridge last did, for Diagnostics. */
         val status: StateFlow<String> = lastStatus.asStateFlow()
+
+        /** Recent display events, newest last. Relative times only, like the debug report. */
+        val log: StateFlow<List<String>> = events.asStateFlow()
     }
 }
