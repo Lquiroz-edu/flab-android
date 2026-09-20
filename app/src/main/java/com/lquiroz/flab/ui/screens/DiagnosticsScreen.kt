@@ -154,6 +154,34 @@ fun DiagnosticsScreen(
         }
 
         FLabCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Displays")
+            Spacer(Modifier.height(10.dp))
+            snapshot.displays.forEach { display ->
+                KeyValueRow(
+                    label = "#${display.id} ${display.name}" + if (display.isDefault) " (default)" else "",
+                    value = "${display.widthPx}×${display.heightPx} · ${display.state}",
+                )
+            }
+            if (snapshot.displays.isEmpty()) KeyValueRow("Displays", "None reported")
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Cover bridge: ${snapshot.coverBridgeStatus ?: "not started"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = FLabColors.textSecondary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "F/LAB Home mirrors itself onto a second display, if the device exposes " +
+                    "one, for the first half of the opening. Whether a Fold offers its cover " +
+                    "panel that way is not documented, so this is the device's own answer.",
+                style = MaterialTheme.typography.bodySmall,
+                color = FLabColors.textSecondary,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        FLabCard(Modifier.fillMaxWidth()) {
             SectionLabel("Permissions")
             Spacer(Modifier.height(10.dp))
             snapshot.access.forEach {

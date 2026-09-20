@@ -42,6 +42,22 @@ data class SystemEffectsReport(
 )
 
 /**
+ * One display the platform exposes to this app, as `DisplayManager` reports it.
+ *
+ * This is the probe behind the cover-display bridge: whether a Galaxy Fold offers its cover panel
+ * as a second display an app can present on — and in what state — is not documented anywhere, so
+ * Diagnostics shows exactly what the device says rather than what a spec sheet implies.
+ */
+data class DisplayReport(
+    val id: Int,
+    val name: String,
+    val widthPx: Int,
+    val heightPx: Int,
+    val state: String,
+    val isDefault: Boolean,
+)
+
+/**
  * A grantable capability and what F/LAB loses without it (DoD 17).
  *
  * The `whatBreaks` field is the point: the Access screen is not allowed to say "turn this on",
@@ -70,6 +86,10 @@ data class DiagnosticsSnapshot(
     val capturedAtMillis: Long,
     /** State of the system-wide overlay, or null when the feature is off. */
     val systemEffects: SystemEffectsReport? = null,
+    /** Every display the platform exposes to F/LAB right now. */
+    val displays: List<DisplayReport> = emptyList(),
+    /** What F/LAB Home's cover-display bridge last did, in its own words. */
+    val coverBridgeStatus: String? = null,
 ) {
     val hasBlockingIssue: Boolean
         get() = access.any { !it.granted && !it.experimental } ||

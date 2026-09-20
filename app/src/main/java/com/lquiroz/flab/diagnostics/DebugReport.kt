@@ -96,6 +96,15 @@ object DebugReport {
             appendLine()
         }
 
+        appendLine("Displays")
+        if (snapshot.displays.isEmpty()) appendLine("  none reported")
+        snapshot.displays.forEach { display ->
+            val default = if (display.isDefault) " (default)" else ""
+            appendLine("  #${display.id} ${display.name}$default: ${display.widthPx}x${display.heightPx}, ${display.state}")
+        }
+        appendLine("  Cover bridge   ${snapshot.coverBridgeStatus ?: "not started"}")
+        appendLine()
+
         appendLine("Compatibility")
         appendLine("  Rules loaded   ${snapshot.compatibilityRuleCount}")
         if (includeConfiguredApps && configuredPackages.isNotEmpty()) {

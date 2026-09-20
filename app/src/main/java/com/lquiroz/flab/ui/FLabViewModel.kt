@@ -21,7 +21,9 @@ import com.lquiroz.flab.diagnostics.AccessRequirement
 import com.lquiroz.flab.diagnostics.DebugReport
 import com.lquiroz.flab.diagnostics.DeviceReport
 import com.lquiroz.flab.diagnostics.DiagnosticsSnapshot
+import com.lquiroz.flab.diagnostics.DisplayProbe
 import com.lquiroz.flab.diagnostics.ModuleError
+import com.lquiroz.flab.launcher.CoverDisplayBridge
 import com.lquiroz.flab.diagnostics.SystemEffectsReport
 import com.lquiroz.flab.profiles.AppProfile
 import com.lquiroz.flab.profiles.DefaultAppProfiles
@@ -346,6 +348,8 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
             compatibilityRuleCount = registry.size,
             capturedAtMillis = System.currentTimeMillis(),
             systemEffects = systemEffectsReport(),
+            displays = DisplayProbe.probe(getApplication()),
+            coverBridgeStatus = CoverDisplayBridge.status.value,
         )
     }
 

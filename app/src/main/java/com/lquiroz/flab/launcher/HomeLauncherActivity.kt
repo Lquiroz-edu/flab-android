@@ -12,8 +12,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.Lifecycle
@@ -22,10 +30,12 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.lquiroz.flab.FLabApplication
 import com.lquiroz.flab.MainActivity
+import com.lquiroz.flab.motion.MotionChannels
 import com.lquiroz.flab.system.SystemAccess
 import com.lquiroz.flab.ui.FLabViewModel
 import com.lquiroz.flab.ui.motion.rememberFoldMotionChannels
 import com.lquiroz.flab.ui.theme.FLabTheme
+import com.lquiroz.flab.ui.theme.FLabTokens
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -54,6 +64,14 @@ class HomeLauncherActivity : ComponentActivity() {
     private val isDefaultHome = MutableStateFlow(false)
     private val isFoldWallpaperActive = MutableStateFlow(false)
 
+    /**
+     * The live channels, shared with the cover-display presentation. The main window's composition
+     * owns the frame loop; the presentation is a second composition that only reads.
+     */
+    private val mirroredChannels = mutableStateOf<State<MotionChannels>>(mutableStateOf(MotionChannels.Neutral))
+
+    private lateinit var coverBridge: CoverDisplayBridge
+
     private val roleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { refreshStatus() }
@@ -63,6 +81,9 @@ class HomeLauncherActivity : ComponentActivity() {
         enableEdgeToEdge()
         // A home screen has nothing behind it to go back to.
         onBackPressedDispatcher.addCallback(this) { }
+
+        coverBridge = CoverDisplayBridge(this) { MirroredHome() }
+        coverBridge.start()
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -77,6 +98,7 @@ class HomeLauncherActivity : ComponentActivity() {
                 try {
                     awaitCancellation()
                 } finally {
+                    coverBridge.setWanted(false)
                     core.releaseContinuousTracking(this@HomeLauncherActivity)
                     core.detach(this@HomeLauncherActivity)
                 }
@@ -86,32 +108,64 @@ class HomeLauncherActivity : ComponentActivity() {
         setContent {
             FLabTheme {
                 val ui by flab.uiState.collectAsStateWithLifecycle()
-                val catalogue by launcher.catalogue.collectAsStateWithLifecycle()
-                val homePresses by launcher.homePresses.collectAsStateWithLifecycle()
-                val defaultHome by isDefaultHome.collectAsStateWithLifecycle()
-                val wallpaperActive by isFoldWallpaperActive.collectAsStateWithLifecycle()
-
                 val channels = rememberFoldMotionChannels(
                     evidence = flab.evidence,
                     tuning = ui.effectiveMotion,
                     enabled = ui.configuration.enabled,
                     onSettled = flab::onMotionSettled,
                 )
-                FLabHomeScreen(
-                    channels = channels,
-                    catalogue = catalogue,
-                    homePresses = homePresses,
-                    isDefaultHome = defaultHome,
-                    isFoldWallpaperActive = wallpaperActive,
-                    onRequestDefaultHome = ::requestDefaultHome,
-                    onSetWallpaper = { open(flab.liveWallpaperIntent()) },
-                    onOpenFLab = { open(Intent(this, MainActivity::class.java)) },
-                    onLaunch = ::launch,
-                    onAppDetails = launcher::openAppDetails,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                SideEffect { mirroredChannels.value = channels }
+                LaunchedEffect(channels) {
+                    snapshotFlow { CoverBridgePolicy.shouldMirror(channels.value) }
+                        .collect { coverBridge.setWanted(it) }
+                }
+                Home(channels)
             }
         }
+    }
+
+    @Composable
+    private fun Home(channels: State<MotionChannels>) {
+        val catalogue by launcher.catalogue.collectAsStateWithLifecycle()
+        val homePresses by launcher.homePresses.collectAsStateWithLifecycle()
+        val defaultHome by isDefaultHome.collectAsStateWithLifecycle()
+        val wallpaperActive by isFoldWallpaperActive.collectAsStateWithLifecycle()
+        FLabHomeScreen(
+            channels = channels,
+            catalogue = catalogue,
+            homePresses = homePresses,
+            isDefaultHome = defaultHome,
+            isFoldWallpaperActive = wallpaperActive,
+            onRequestDefaultHome = ::requestDefaultHome,
+            onSetWallpaper = { open(flab.liveWallpaperIntent()) },
+            onOpenFLab = { open(Intent(this, MainActivity::class.java)) },
+            onLaunch = ::launch,
+            onAppDetails = launcher::openAppDetails,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+
+    /**
+     * The same home, on the other panel. A presentation window shows no wallpaper, so this one
+     * paints F/LAB's own ink behind the icons — the panel is facing away or mid-switch, and a black
+     * frame under the mirrored motion reads better than a hole.
+     */
+    @Composable
+    private fun MirroredHome() {
+        FLabTheme {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(FLabTokens.InkDark),
+            ) {
+                Home(mirroredChannels.value)
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        coverBridge.release()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

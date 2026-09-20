@@ -159,8 +159,16 @@ The motion starts at the first degree, not at the panel switch: on the cover dis
 the hinge listener open while it is on screen (as the wallpaper does) and draws itself toward the
 hinge edge as the opening begins (`MotionChannels.handoffAmount`, a bell over progress that is zero
 at rest closed and gone by half open, pinned by `MotionChannelsTest`), so the inner display picks
-the content up already pinched at the same hinge. What it cannot do, and no app can: keep both
-panels lit at once — Android exposes them as one logical display and Samsung decides the switch.
+the content up already pinched at the same hinge.
+
+Both panels at once: `launcher/CoverDisplayBridge.kt`. A third-party proof of concept on the Z Fold 8
+(moomanjohnny, r/GalaxyFold, September 2026 — hinge angle in, `Presentation` API out, no root)
+showed the cover panel can be presented on as a second display. The bridge does the live version:
+while `CoverBridgePolicy.shouldMirror` holds (the first half of the opening, and only then — an open
+device must not keep its rear-facing cover lit) it presents the home screen on whatever other
+display `DisplayManager` exposes, driven by the same channels as the main window. Nothing here can
+power a panel on and none of it is documented by Samsung, so Diagnostics lists the raw displays the
+device reports and what the bridge last did; the answer on a real Fold is read there, not assumed.
 
 ### 11. Live Preview — **Done**
 `ui/screens/FoldMotionScreen.kt`. The scrubber feeds the same `MotionChannelMapper` at the same
