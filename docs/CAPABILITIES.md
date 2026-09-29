@@ -21,3 +21,7 @@ Each experiment must be isolated, explain its permissions, and include a measura
 - Replacing another app's status bar treatment.
 - Injecting animations into another app or One UI system transitions.
 - Modifying protected System UI behavior without platform signing, root, or OEM cooperation.
+
+## Evidence from the supplied Duo Fold Live source
+
+The [reference review](DUO_FOLD_REFERENCE.md) documents a Shizuku-assisted Samsung wallpaper angle feed, privileged capture, overlays and mirrored previews over ordinary apps. This demonstrates a concrete implementation to investigate, rather than supported platform APIs or verified F/LAB capability. Compositing above an app does not inject code into it, control its status bar or guarantee its Activity continuity. The native panel handoff blackout remains a documented limitation. Device/firmware validation, opt-in setup, restoration and performance measurements are required before integration.

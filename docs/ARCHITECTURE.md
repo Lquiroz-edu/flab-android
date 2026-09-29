@@ -14,3 +14,7 @@ The app uses unidirectional state flow. Window layout information is observed as
 ## Future module boundaries
 
 When the second production feature is added, extract `core:fold`, `core:designsystem`, and independent `feature:*` modules. Early modularization is intentionally avoided to reduce Gradle configuration and CI complexity.
+
+## Supplied system-wide fold-engine reference
+
+[Duo Fold Live review](DUO_FOLD_REFERENCE.md) maps the supplied engine to proposed angle-source, capture, renderer and handoff adapters. Keep standard WindowManager posture separate from continuous raw-angle measurement; include source, sample age and readiness in the future session model. The complete upstream project is retained in `references/duo-fold-live/source/`, outside the application source sets and Gradle module graph. No privileged adapter has been wired into F/LAB by this reference import.
