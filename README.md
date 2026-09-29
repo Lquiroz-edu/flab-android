@@ -26,3 +26,7 @@ The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. GitHub Acti
 This milestone only changes UI inside F/LAB. It does not alter other apps, replace One UI Home, use an accessibility service, draw overlays, or require root access.
 
 See [Product direction](docs/PRODUCT.md), [Architecture](docs/ARCHITECTURE.md), and [Capability boundaries](docs/CAPABILITIES.md).
+
+## Duo Fold Live reference
+
+The supplied Duo Fold Live 3.5.2 source archive is preserved under [references/duo-fold-live](references/duo-fold-live/README.md), with its original licenses and a file hash inventory. See the [technical review and F/LAB integration plan](docs/DUO_FOLD_REFERENCE.md) for continuous-angle acquisition, live capture, projection, handoff and firmware limits. This reference is not part of the F/LAB application build; its system-wide animation remains a future opt-in integration.
