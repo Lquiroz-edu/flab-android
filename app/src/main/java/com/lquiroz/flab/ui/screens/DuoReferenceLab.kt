@@ -60,7 +60,8 @@ internal fun DuoReferenceLab(evidence: Flow<FoldEvidence>, onTrackSensor: (Boole
     val track by rememberUpdatedState(onTrackSensor)
 
     DisposableEffect(owner, sensor) {
-        val observer = LifecycleEventObserver { _, _ ->
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) playing = false
             track(sensor && owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
         }
         owner.lifecycle.addObserver(observer)
