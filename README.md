@@ -105,3 +105,7 @@ nothing behind.
 See [Product direction](docs/PRODUCT.md), [Architecture](docs/ARCHITECTURE.md),
 [Capability boundaries](docs/CAPABILITIES.md) and
 [Definition of Done](docs/DEFINITION_OF_DONE.md).
+
+## Duo preview test · 0.7.0
+
+Open **Fold Motion** to try the supplied Duo Classic glass shader inside F/LAB, with manual angle controls, a one-shot open/close demo and optional Core hinge-sensor input. See [test steps and limits](docs/DUO_PREVIEW_TEST.md). The [complete supplied reference](references/duo-fold-live/README.md) is preserved with licenses and provenance. This preview does not yet integrate Samsung/Shizuku angles or the cross-panel live mirror.

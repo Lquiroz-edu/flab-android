@@ -1,0 +1,1506 @@
+{
+  "archive": "duo-fold-live-ci-63-1.zip",
+  "archive_sha256": "58e3959c74250f5a6190360d1f48f60570bb25faebce779fb67dd98662d04a26",
+  "archive_comment": "8ca4371bf4c83ea6c840a2d500325e55635245be",
+  "source_repository_claimed_by_readme": "https://github.com/joeconsorti/duo-fold-live",
+  "source_version": "3.5.2",
+  "apk": {
+    "filename": "Duo-Fold-Live-ci-63-1.apk",
+    "bytes": 20705275,
+    "sha256": "e8b71929a622177a331b6b15dbb96e7677de4878961051a1e272e2b3543c24f5",
+    "package": "org.duofold.live",
+    "version_name": "3.5.2",
+    "version_code": 1071,
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "compile_sdk": 36,
+    "verification": "Binary AndroidManifest.xml inspected; no signature verification, reproducible build comparison or device execution performed."
+  },
+  "files": [
+    {
+      "path": ".github/FUNDING.yml",
+      "bytes": 19,
+      "sha256": "26e11e76da8774d5331b9fc938e3e4c09d786ff257ab44ac5d832cd88c15a1c7"
+    },
+    {
+      "path": ".github/workflows/android.yml",
+      "bytes": 5353,
+      "sha256": "c5265697f77e449785262f723e7fd1ba10fcce084ac971312e93ae87d12163d6"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 131,
+      "sha256": "eccaa10f0a7bbbf127a588a10fd6f55c2aab8d46a0ef07e8db2544c39fedf7f4"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 2108,
+      "sha256": "a019647dbdd5f1a5e99efd3640a81d01415c91f72b8e813d49a5980fffe7ded5"
+    },
+    {
+      "path": "DEPENDENCIES.md",
+      "bytes": 737,
+      "sha256": "c9bb0ee6ed4cbc2284f97f81b492dc543dd000258dfa3d328daef667f049a76a"
+    },
+    {
+      "path": "KNOWN_WORKING_BUILD.md",
+      "bytes": 1776,
+      "sha256": "50636420eee0a7d5ec167972fdbc379b8e4762ebd5158af5a5d1c01b79e16111"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 1171,
+      "sha256": "27a32c70b1f38ad61c329f34cf8dd7b2e252761e4911bd0ae256bc805fe1690c"
+    },
+    {
+      "path": "PRIVACY.md",
+      "bytes": 1292,
+      "sha256": "e69e6a2e32d0cdd08f1c8693bdd71f1c1aea1c33efc0e9a5f34ca66820905a33"
+    },
+    {
+      "path": "README.md",
+      "bytes": 13246,
+      "sha256": "0cbdd6084810cf24405771cf13831edd83ab99299ad1dfc286cf1b0e89844f6c"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 1436,
+      "sha256": "ccc7fef88432aa7ec303f9de6b32026ccecdc645f14f190c25ef8b1a13d030be"
+    },
+    {
+      "path": "app/build.gradle.kts",
+      "bytes": 2357,
+      "sha256": "a9300bb109c263ce9877a50ea4cfb945254b05f65141461946e1232869a7053c"
+    },
+    {
+      "path": "app/libs/aidl.jar",
+      "bytes": 25083,
+      "sha256": "584945c98f21b0c4e3ccdb74b51528f89852174c30bb2a4786c43a8ca456e496"
+    },
+    {
+      "path": "app/libs/api.jar",
+      "bytes": 25678,
+      "sha256": "4315fcd853f487321548be5a997749fe43105fa29aaaa6f6e7a8cdc958a38357"
+    },
+    {
+      "path": "app/libs/provider.jar",
+      "bytes": 6671,
+      "sha256": "35aee86b938cb8d06b315c9d73c30f41ec7cfdc10009a5de83733bc5c4db5051"
+    },
+    {
+      "path": "app/libs/shared.jar",
+      "bytes": 2130,
+      "sha256": "8557b8c715d374f8da18e148ca5b971d1c7435e91447e6d4f7664403c7328760"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "bytes": 4545,
+      "sha256": "76750dae92ae6135bcfaf3819acac09013835680351bb7af9e7d09e72da3c649"
+    },
+    {
+      "path": "app/src/main/assets/licenses/Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "app/src/main/assets/licenses/FOLDUO-MIT.txt",
+      "bytes": 1065,
+      "sha256": "e28e3adfd4220d914e645382627484b59b6c51710b51e6457b00165f32a2664e"
+    },
+    {
+      "path": "app/src/main/assets/licenses/FOLIO-MIT.txt",
+      "bytes": 1082,
+      "sha256": "09661d562c5f7538e0a4ef2a066ad5bdb8c5c379f64a7efc1d3bb294c5b0d51e"
+    },
+    {
+      "path": "app/src/main/assets/licenses/HiddenApiBypass-LICENSE.txt",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "app/src/main/assets/licenses/IPHONE-DUO-MIT.txt",
+      "bytes": 1063,
+      "sha256": "7317c3e2ae6c8baca2b82edf844b73c58e7e0df41adde8864806ba3c4bffb121"
+    },
+    {
+      "path": "app/src/main/assets/licenses/STANDALONE-NOTICE.txt",
+      "bytes": 925,
+      "sha256": "4715050a5d3fe41f813aee65812188ec12e55e0758fdf3da2d37e1ccc1a55a14"
+    },
+    {
+      "path": "app/src/main/assets/licenses/Shizuku-LICENSE.txt",
+      "bytes": 1062,
+      "sha256": "64870037f294b6f2b75c8ebe77cc0702acb3b64f86b4b0e58bf8558525303686"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/AngleParser.java",
+      "bytes": 589,
+      "sha256": "febb2e6d3ca62b74ed5366d9936c8a9c32bab271dbcbda185e4449a26e085b1a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/AngleReader.java",
+      "bytes": 10121,
+      "sha256": "68154cab2cf2bde8524fb8082308b54901a492e88591b6a6fb545dc6a37a7e4b"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/AnimationModePolicy.java",
+      "bytes": 1265,
+      "sha256": "73b783267cb74ab014e5af6c41691d259b79f6bc229dd5fdfc0ac7ba37d4dacb"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/AntiAliasShader.kt",
+      "bytes": 1365,
+      "sha256": "5a7779cc4f8117aa73a51ac8631514c2372aced0f23d10a44d5783ee5a4f092d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/BuiltInPanel.java",
+      "bytes": 768,
+      "sha256": "cbdfced14d80b2164a25d7c557b3bd17f430ae0e6ec07ef84358f89ce116f81d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/CaptureApi.java",
+      "bytes": 1668,
+      "sha256": "23bcde771cd67dabd436cbf7d205c2806403cf0621c765cd848d9e95bd4a3e45"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/CaptureCompletion.java",
+      "bytes": 1199,
+      "sha256": "def46a9b91b27632d472061f6d368b6ad8e36ce7e2cf4dbef56999949a01b1d0"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/CaptureGate.kt",
+      "bytes": 546,
+      "sha256": "c19e355c7bd592864369680a6aa57b022686d7f1c13976118998368137ebb7b2"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ClassicGlassShader.kt",
+      "bytes": 6692,
+      "sha256": "5c815e566b7f6bbfe8f43e7780402f623724c83cd799fae7ff75a2b16fc55abd"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ClosingMirrorFadePolicy.java",
+      "bytes": 1242,
+      "sha256": "0a3815abc851e3259f12eacc464e009c29b5cc323fe96d475776552e244902bc"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ConcurrentController.java",
+      "bytes": 6122,
+      "sha256": "84931eb89cbbf0de57b7c07450e36534ac931e7980ddf19b1408d475ef98d4db"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ContinuityProbeDiagnostics.java",
+      "bytes": 2346,
+      "sha256": "4cd197ea8d8eefc5cdc9da1bac1e2c209f5d63336427f368fc89b785fd84fc40"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ContinuityProbePolicy.java",
+      "bytes": 1871,
+      "sha256": "3263b38733c5f98c34c81dfe283ff75792fc1ec1704d4d678a605c73965a6aab"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/CoverHandoff.java",
+      "bytes": 5670,
+      "sha256": "645d99c4cafc9dad2f705fbcf822182c5e68e97f96be63a2db7613c83f6cacf6"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/CoverPreviewPolicy.java",
+      "bytes": 373,
+      "sha256": "6e3dcec3be100357efe0c95cb0920fd03fde5bdc318b1dafe4796d833dcb603d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DeviceCompatibility.java",
+      "bytes": 1010,
+      "sha256": "9911a96c07b9f820d1df25da14160538fb65bf2ad038dd4aa3f8db9029d52af6"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DeviceProfileChoice.kt",
+      "bytes": 1033,
+      "sha256": "8c0873b25ee159c862e9f8933ff00d690a6a36886f6a0a815e41db510d0bf37a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DirectHandoffPolicy.java",
+      "bytes": 544,
+      "sha256": "179d9aef4108f6971672316c4cc3d5c08d1b36eaeaac8cf187f26faf7d30c998"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DisplayCaptureApi.java",
+      "bytes": 1621,
+      "sha256": "8e577e1da6a52e427f83b43dbc866ce57d0bdc74a5c4ba09e0730634231242b2"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DisplaySettingsService.java",
+      "bytes": 242,
+      "sha256": "097953c097a9337b58c365e0e03679113b0c1e9529098e25be3f6f4185729b4d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DualPanelPolicy.java",
+      "bytes": 345,
+      "sha256": "1d902976a750e3b090690a116c7be32324c85f5794307b612b568a68c3745e90"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DuoApplication.java",
+      "bytes": 1424,
+      "sha256": "d406cfbfaa291e26aa7967c13d4a56fbc5fa64266a4a890f49ae7cd19e3bae8a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DuoGlass.kt",
+      "bytes": 27307,
+      "sha256": "3e370a165af218ee25dee17ecf6a2d7893e1277c0da677701705a9797bbbbb7e"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/DuoShadeCurve.kt",
+      "bytes": 726,
+      "sha256": "2634d7d15cb304ae06d94e0491580c59b0bd2d3c708fcb6a9cdf8f172057184a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FadeSettings.java",
+      "bytes": 555,
+      "sha256": "68864e33ece7412db84be4dc15aba8892849e5f11c4a7f39c33f210208a52dde"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FirstRun.kt",
+      "bytes": 854,
+      "sha256": "b6b729c2c3e3bc049c804cc71b99cd4e633e3ce61c1a3c2ad035b2027bfbde6f"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FixedRotationMode.java",
+      "bytes": 307,
+      "sha256": "9873cc525a8d882c8d12d11639bc77f770ef6554a375d0074a1a2a0279faa41d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldAvoidance.kt",
+      "bytes": 4460,
+      "sha256": "a2d6126e0ceba874c32645b0b323cee6127a1c71899167694f0c1aef317ea097"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldAwakeDefault.kt",
+      "bytes": 2050,
+      "sha256": "ac8f74195a241c71666c830723869d17693cb703f568fd6de7fa002e97194e0d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldAwakeGuard.kt",
+      "bytes": 3276,
+      "sha256": "67aed225d4b38b2e46c0298455245c1fd074fbd62a84681b2b67c85a3e08abfd"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldBackgroundService.java",
+      "bytes": 8324,
+      "sha256": "930764d8548840920a7465e80b3c01d6489ea009771c4e95d7af2a47e79e4978"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldBridgeActivity.kt",
+      "bytes": 4078,
+      "sha256": "b5190aaa079db223ac7d61574900d2c296aa190f740fcff6124ab2d67deece2d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldGeometry.kt",
+      "bytes": 1007,
+      "sha256": "bc44a9817cef752101fd034030083f22f2703cc7d2296586bacecc18892e8aa1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldMotionActivity.kt",
+      "bytes": 20581,
+      "sha256": "0228a472880e3d85c9af174d1b0bb241e4bb34621055f8750ebdcfad47cf35ec"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldMotionCsv.kt",
+      "bytes": 2189,
+      "sha256": "4738a916ede7bca22decf1b3634e2e060b998ae7ac1f7dfe315cf706c47c9396"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldMotionIntegrator.kt",
+      "bytes": 2896,
+      "sha256": "169926b222b7bf3fe0924d126bb15adc417975ca9bfe911da70cff96383cb9d3"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldProbeActivity.kt",
+      "bytes": 23237,
+      "sha256": "bb11b37b3351368a4ebcadd2e90c9bcdb6be5da0efe4947fad585d6b3129f0fc"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldRotationHold.java",
+      "bytes": 23118,
+      "sha256": "daec6bc06d2c3029bc127ae2867c7cbb8c0c897a26739c184fa51276cdbedc27"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldRotationPolicy.java",
+      "bytes": 1094,
+      "sha256": "046723234087bbd7bdb549f0f8d6cd6687edf706e382cbb6ba527daa3d4dc2c4"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldSettingsClient.kt",
+      "bytes": 2672,
+      "sha256": "988f46929e8024629fddf4ed4f6b684405804717935763745d13e5edacf31ad1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldSettingsService.java",
+      "bytes": 9161,
+      "sha256": "311ca1347b7399e756f133c51a35387a8a7cddc9ebf805466b180568944ffd0f"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldSize.kt",
+      "bytes": 864,
+      "sha256": "d23b4a97a5e5273b6043602318ff03e6d30bd7c2ef4eb58818b0fcfe3f4ad627"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldThreshold.java",
+      "bytes": 685,
+      "sha256": "a182c68a784b6f1e980704a12e827c651884f61ecb30f8f65dbd282c7fad92f4"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FoldWakePolicy.java",
+      "bytes": 428,
+      "sha256": "d023b42952a8141661ae673138842db8f4f848a56ca2f568d12ef9bc64e28032"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FrameSmoothing.kt",
+      "bytes": 655,
+      "sha256": "7ad140124f5a6b3ccd7ef581ad399574a9006a9845cfdd8130c76cdaa5e5399b"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FrameTelemetry.kt",
+      "bytes": 835,
+      "sha256": "a22ef108c60fd43cdf92480586f7cb0383b7d20ac1dacd239d306626c726f2ce"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/FreezePolicy.java",
+      "bytes": 551,
+      "sha256": "6d60ad7816eeca8a420c1c37e69445745695c68506caaf89acceb7bb11fc9af1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/GlassCapture.java",
+      "bytes": 7447,
+      "sha256": "c1d00936d389ab2b6ad3a79dd6f3b7f19ad7c91e29f79d74bb8ee17a3da2aef1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/GlassFramePolicy.java",
+      "bytes": 285,
+      "sha256": "80cdd7f305b5f6e3e77f43b646189636be2119c0f18fc19c0a40d560abeeb730"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/GlassFrames.kt",
+      "bytes": 6084,
+      "sha256": "f5af7395f70e2857507267cdbea1e9d1035bd0fabe6042387bf75ff17565e033"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffFade.java",
+      "bytes": 8469,
+      "sha256": "6ced13d8879c7ebc2a8204739da884dab3332ecf64a30b7aaa769ec4b634a836"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffFadeFrames.kt",
+      "bytes": 1563,
+      "sha256": "71a17d1448c575a001ef0382135bba2927fa5e31d636259e43535eb0098cfba7"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffFadePolicy.java",
+      "bytes": 4544,
+      "sha256": "86f5e7985ef9a1d716dc11ab08975f2c0dbbf5be5a1b3d25155344c8449c0d1b"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffFrames.kt",
+      "bytes": 2100,
+      "sha256": "3557c3c427f04e6ac385afba7354bd1a6cb615c142ddac542772c6fea1f9945e"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffPolicy.java",
+      "bytes": 480,
+      "sha256": "01431e8dfbc9a87981c7d81fdb62b9f7ded1582b7740284434732a4c1415588a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HandoffStartPolicy.java",
+      "bytes": 261,
+      "sha256": "a8c5ab889dc78cc6f09e08ec58d924392fd633cacfae050dc93ea40bc6242695"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HealthTrace.java",
+      "bytes": 2253,
+      "sha256": "1c14318bd3891dd7f64d7f97427d7c56a520979980254c95e83feaa7403cdeae"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/HingeTracker.kt",
+      "bytes": 3902,
+      "sha256": "024c2183010eff56fb8a8fcd3dcbdcca4f8839ba2bad785f52070723a64eb2c9"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/InnerDecorRecovery.kt",
+      "bytes": 4175,
+      "sha256": "189e98b005c062672bb99a936ca920d158db6d861373240765e913864cbe9234"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/InnerLiveMirror.java",
+      "bytes": 3841,
+      "sha256": "64b2b5ff7ac7b25c0c2fb4ed54ee4a75016f2d297a76c88b8cccb680a6a2bbdd"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/LiveAngleMapping.kt",
+      "bytes": 336,
+      "sha256": "02314d28205b807c66811113901d3c7c25c8af56121cb8e4e91d36aee18df7dd"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/LiveAngles.java",
+      "bytes": 16535,
+      "sha256": "d6e1fc6d002ea36b2cd8584cc92b393580082f0c39a0f27072689e7e618945a1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/LiveMirrorLayout.java",
+      "bytes": 583,
+      "sha256": "fa118791c3d49caa4540a175ec38453b4fbb3d31bc4940d2a172e575a071fb12"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/LivePanelSurface.kt",
+      "bytes": 2098,
+      "sha256": "5ba36daed009f6f9212d74407dfeb11c77e02698314a8b98ad9c1ef292f8a036"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/LiveVeil.kt",
+      "bytes": 3876,
+      "sha256": "c0ed2c6596e11f6e2a0223c6a48a1f9733f82cbe9aab07148fc999fdf01d69c4"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/MainActivity.kt",
+      "bytes": 34292,
+      "sha256": "2805e304c71ceda9294b28c749f433961afe859cc7f5cd7e48910aacb226224c"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/NativeContinuityProbe.java",
+      "bytes": 5034,
+      "sha256": "72c4876d370bd71d75f1ddd3d43d6ba484343ee41390f3f2611b7d75308e2da1"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/NativeInnerOverlay.kt",
+      "bytes": 2384,
+      "sha256": "0da495fb6c748821d8b3815d7ccec51988778071f87c328ca5680096c7ceeeba"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/OnboardingPolicy.kt",
+      "bytes": 722,
+      "sha256": "dacc8e1b892dd40da214e69130c7e685b6f799a12c6757d3e278e535ff39d938"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/PollCadence.java",
+      "bytes": 324,
+      "sha256": "77fe723396cc603238b81399b54b787df26e9fe30257af1b5e7ffb4135ef9c05"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/PreviewExpansion.java",
+      "bytes": 17007,
+      "sha256": "de894c303d9431745275600ae80546ce1019dc22d87aefe8a895ec5146d92238"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/PreviewExpansionPolicy.java",
+      "bytes": 584,
+      "sha256": "7e1c70eeac1122dfd4e935224d6afd7a069f08ee30e3b220b0573ecab47ed760"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/PreviewTransition.kt",
+      "bytes": 7529,
+      "sha256": "739f1a56c4ca0d58357a9beb92abce92b9360bf9adf9ff55022e435ef0021448"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ReaderRecovery.java",
+      "bytes": 231,
+      "sha256": "d480ffbbb7b9232e32f62e16d78904c695847afebaa9c9bc2a30223b8c80c517"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RecoveryLog.java",
+      "bytes": 930,
+      "sha256": "4c9d34c3096804c1a56ca0e7cc0ee40855c9c9f6908896e5f813ff06a0ddeec8"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RenderQuality.java",
+      "bytes": 1146,
+      "sha256": "233fbd62e5921e1ef6a5063cb0d6a2439bc0e2f49f687da0e8e55dadc5688538"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RestoreReceiver.java",
+      "bytes": 531,
+      "sha256": "c091988ce88e961c3d47e6705f875d5d36b5d03fad65279ebaa3bb3377a1a947"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RotationMigration.kt",
+      "bytes": 2508,
+      "sha256": "dc6d5806e54dbcb92ab962fe687431e9caad3edb990846dbde805e87c50706c0"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RotationMigrationPolicy.java",
+      "bytes": 379,
+      "sha256": "44e85a882cd6ecb4224ae20a75297017c15f7131deb2c7eed7b2e37fc4c7d676"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RotationPreferences.java",
+      "bytes": 819,
+      "sha256": "3a13b5a5c7a0dbc010ed9c6521be5ddb05074bc2c3d0494d8b2f32ef7d67e628"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RotationRecoveryProcess.java",
+      "bytes": 3392,
+      "sha256": "8bc6b318535d6da5512e064a632f1a2a653156f464130f64316a6f2485143608"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/RotationRelease.java",
+      "bytes": 577,
+      "sha256": "e32ae4d39b0c00145b3b3ab3cd9b7a0f032ac480eb1c50e936193f5e60eff8cc"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SecondaryShade.kt",
+      "bytes": 6263,
+      "sha256": "ff724ed19be6948acafc01a52876fd27544bb8a997c1d81f1aa51e6fc3b9e41f"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SetupActivity.kt",
+      "bytes": 16327,
+      "sha256": "0a2a662fca3525585c8a262d2c86965973d595dd2dc9cdf330e889ac42cca533"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ShellFrameworkBootstrap.java",
+      "bytes": 1621,
+      "sha256": "f84f89171f3274c75e11efc30eeeda1ba758b5359f28986d2424d2862635b61d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ShizukuAccess.kt",
+      "bytes": 3915,
+      "sha256": "7a182c7d507b34cd94b4d006fa00c4923007e965dd88af4c1b7bb68b957ddae4"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/ShizukuHelp.kt",
+      "bytes": 7431,
+      "sha256": "9b24bb6a21356ddc2c8c8fd7a5b8ae057bb280aa2a2d3bfa719046d19fd67816"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SizeClass.kt",
+      "bytes": 778,
+      "sha256": "181cba7da907df3c4cc008a019c9aca2f5aa7c5bd5b936ba6e58a1a96ded4ae6"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/StandaloneHost.kt",
+      "bytes": 1541,
+      "sha256": "e826f22200e3797750225801ff3850ce1fbd4f9e98d5e41481c3bb92582959cb"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/StandaloneService.kt",
+      "bytes": 17656,
+      "sha256": "a70040ccd20379cb3bd8b227a05fa1f0d639b69aae5ef9201680170855752c87"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SupportPromptPolicy.java",
+      "bytes": 538,
+      "sha256": "b40da7384bcd160dca88fb15249213474477a5da0a229c2a871c23a0ba1fc952"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SupportPrompts.java",
+      "bytes": 4523,
+      "sha256": "1e72d092ceae49a1f95dbd1485f6e4eb3d71adf9a8f41c7e70d789ecfcd3f2c3"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/SupportReminderReceiver.java",
+      "bytes": 332,
+      "sha256": "2197b6d5d2791430546cd1b475bebee61d7ce85b38ce00a969de1497b01b646a"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/TaskDisplayRouter.java",
+      "bytes": 16598,
+      "sha256": "66d0bcd06a1bd52d3fa1676ae6ac625c71608c5e40d0f4b2e8ef3df7673327fb"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/WallpaperFiles.kt",
+      "bytes": 3515,
+      "sha256": "d2d869818882f457be2927e6ed14b34cf5049d4dc9ae12fd9086bf245a4dc1eb"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/WallpaperProfile.java",
+      "bytes": 778,
+      "sha256": "b8394794a68bde3ab96320bfa750b53ae5ca6b5007b5a8cce898483542d1e50d"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/WallpaperSetupService.java",
+      "bytes": 6119,
+      "sha256": "d5a992bbe91d6a8fb360d068cb18dee7e37a54e7fd33211e0a53314fbdabefc9"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/AttachmentRequest.java",
+      "bytes": 637,
+      "sha256": "afb0ab831ebab0567442a5d3bdfe4482177ae48f07fc3dcc99fbb3f7e831cfda"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/DisplayAreaGuard.java",
+      "bytes": 919,
+      "sha256": "9dc79f1b267e8d65b2ad29af2ea6371113351a016901dc42c11ebf05414a74c6"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/HomePhotoLayer.java",
+      "bytes": 19602,
+      "sha256": "83805d42c66adb756ec48bd90c639fac7c9121c39009c3d3a0a3535469abe405"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/HomePhotoPolicy.java",
+      "bytes": 452,
+      "sha256": "843ffcb0f0b25ffcabf74365cc3fa5b6e761cc7dfe095a7bbd19ae89092ce398"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/HostLauncher.java",
+      "bytes": 6211,
+      "sha256": "6891ba00cd9780f6ccf9608a692ad7e7d35c64fd8973a44b9f2f8f8167b21819"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/LayerHost.java",
+      "bytes": 14525,
+      "sha256": "d6d112bf2f10265e59ada338aeb4c62713bb873e9db4a71a3ca5292d23153abe"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/LockPhotoApplier.java",
+      "bytes": 1350,
+      "sha256": "a5873da2a72a35bcc00bd9a4b89904c3e72a6609550218f9a20ed6143da94852"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/NativePhotoLayer.java",
+      "bytes": 8836,
+      "sha256": "b53e980020ca928d2a9ab11a99cd5cb779f817158b3305694f3a10329df2e627"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/PhotoInstrumentation.java",
+      "bytes": 9155,
+      "sha256": "57a74f6008f67664a36c9420eb9b8b489b0b1989ee56c5c6e127f80526fbc580"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/ProbeJournal.java",
+      "bytes": 823,
+      "sha256": "96ebc6b47572005247c048f9a552f3eeded3350d1095cbd9418890dfbe185c43"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/UnlockTrace.java",
+      "bytes": 9486,
+      "sha256": "ffa6613f41418b2e328f3b3d639e484580e67d6c3258eea26fc9cc3a7aefecba"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/WakeBridgePolicy.java",
+      "bytes": 781,
+      "sha256": "4d9b63de5c8a0de2be433b8955469fe1b5f81989769a64da2761138d7e2071d7"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/WallpaperActivity.java",
+      "bytes": 15014,
+      "sha256": "086a53a880b2b7c49b7b6275bbcdb9ad458691e9babb0c5565c6d6cfe9818cf7"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/WallpaperRestore.java",
+      "bytes": 5277,
+      "sha256": "8603b7fe0f8fcbcc2670289d6bd81cc4fe9f42fe3421100ed5b84c1e72b2dd85"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/WindowAttachment.java",
+      "bytes": 3197,
+      "sha256": "2c64fd82606de10f7079a8a6f3b65b805dda5b1570f1b1e8094541ec9f4b9e11"
+    },
+    {
+      "path": "app/src/main/java/org/duofold/live/wallpaperlayer/WindowTraceFilter.java",
+      "bytes": 1616,
+      "sha256": "32557589387d6ff06ebb2058fca02d5775ef74243d98f4632f1ab5c18c56f563"
+    },
+    {
+      "path": "app/src/main/res/drawable/icon.xml",
+      "bytes": 419,
+      "sha256": "6e5957aaea061134223ff95b084020ec1e56004303093cc34ca6436cb87ebad7"
+    },
+    {
+      "path": "app/src/main/res/values/styles.xml",
+      "bytes": 879,
+      "sha256": "4d39292f3e933b6f6ba181d21da480c16f774445474c6c1c16bc2b241149c704"
+    },
+    {
+      "path": "app/src/main/res/xml/accessibility.xml",
+      "bytes": 476,
+      "sha256": "87f5581291ffaee17db66dc90a76b009277b2adb5a11d7cbdabf300939d64e5d"
+    },
+    {
+      "path": "app/src/main/res/xml/export_paths.xml",
+      "bytes": 118,
+      "sha256": "6064d6bcb31d4b093153f34e83f452d0d9a004c911b7902eb76532e9e91080ff"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/AnimationModePolicyTest.java",
+      "bytes": 1351,
+      "sha256": "c6970b19c28be35469a92564f7c44f56171a0912c6a67ec81a820e8b9e0d8850"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/BackgroundRecoveryTest.kt",
+      "bytes": 1108,
+      "sha256": "f0ba877a5355bd36b35619e224722451ec4952829d3c4a062ccb7acdd6f284a6"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/CaptureApiTest.java",
+      "bytes": 2398,
+      "sha256": "5152dfc5e0e39652095d6082b952060dd00e127752ce1c908195e4fc5e969ebb"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/CaptureCompletionTest.java",
+      "bytes": 1713,
+      "sha256": "dbb10cde26afa504fb4356a0030fc79a1331cb3429565fb5179cec28c0bd88eb"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/ClosingMirrorFadePolicyTest.java",
+      "bytes": 1941,
+      "sha256": "2a67bb6ebe05aca39cc34a2570c4b0f3e34e97616428161bfb5de8d80ffa5df1"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/ContinuityProbePolicyTest.java",
+      "bytes": 2963,
+      "sha256": "c101db2162cbb71cfb9aca99ba36daacb5f416f5bab2dd62d81a35808c226e7e"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/CoverPreviewPolicyTest.java",
+      "bytes": 610,
+      "sha256": "b97764ccc589c90b9ca9cf9b7e30321bc40ee0b07e5120a1417931ff8bd18ae6"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/DeviceCompatibilityTest.java",
+      "bytes": 1146,
+      "sha256": "7c5cc4154d7e58add6a2f0010375749fb00618b66240f11332623fabdedd6801"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/DirectHandoffPolicyTest.java",
+      "bytes": 1722,
+      "sha256": "5a3008e554c872c1f3d80019bdfeb6a49f6dbb9b2edda5eed5343cd77a70c33b"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/DisplayCaptureApiTest.java",
+      "bytes": 2144,
+      "sha256": "1765da1677037781467cd00f9a5f8e09ff0bf581f0eb83ffcb4e5bdcd592f8f0"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/DualPanelPolicyTest.kt",
+      "bytes": 1480,
+      "sha256": "a9887186170f521fa23962a948467cc6d125216bb496f9cdbbbc821800d92ec0"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/DuoShadeCurveTest.kt",
+      "bytes": 781,
+      "sha256": "70e3332fb03a3e8c266dffd3d05fc4ce7b4f93dc182ef6786534a81e8535db61"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FixedRotationModeTest.java",
+      "bytes": 540,
+      "sha256": "44d92d5315798496ebe8e050db204eb44347af2160f944e934a0420b831e7147"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FoldGeometryTest.kt",
+      "bytes": 1306,
+      "sha256": "30414ec60ff6c7f4685c50371268ac37e2ec4bb9559756e9babcf24a231546c8"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FoldMotionIntegratorTest.kt",
+      "bytes": 2033,
+      "sha256": "68ec35623d77ff0f42c7ba85967020d28b6b800696d5c646b7a5f06da2394435"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FoldRotationPolicyTest.java",
+      "bytes": 3072,
+      "sha256": "eed9d74e88952cd3e527ae2fd560eba830fe7cf6e793c270b918c149da35e653"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FoldThresholdTest.kt",
+      "bytes": 1537,
+      "sha256": "c0305b3bc82a001c24f17791c2fcf5daff4aa2c3d7d223712f4047aa7780e202"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FoldWakePolicyTest.java",
+      "bytes": 871,
+      "sha256": "b54de7d6af535519cf3d9a1397a967e5124d581ab3d9cb741e7bccabcb5bca6a"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FrameSmoothingTest.kt",
+      "bytes": 1014,
+      "sha256": "3afae9425117bfff487c67549dfbc1087c380724ecd1a08e19d8cbd86be5bf75"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/FreezePolicyTest.java",
+      "bytes": 1484,
+      "sha256": "28091f23e6ebfb1e8a89a248583345c4d8917c1eb9042371440d9de41b177a25"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/GlassFramePolicyTest.kt",
+      "bytes": 622,
+      "sha256": "0fcaa151e03ab546bc228573480e84a4a74ef6687d727bbdf78e3c059feded9a"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/HandoffFadePolicyTest.java",
+      "bytes": 5415,
+      "sha256": "521e2ad2a6f6c990d9003dc5147e832ada13d641ff5909c1149db4ee373d7e9f"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/HandoffPolicyTest.kt",
+      "bytes": 933,
+      "sha256": "6364294ef5850c32be2938bd9f65e4798381444df0853b791add2bbe029a8951"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/HandoffStartPolicyTest.java",
+      "bytes": 593,
+      "sha256": "cfbfc5ac9ae2d95e4ab2e54edb80f777ecde78892ac44e76a53285ae98158c2e"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/HingeTrackerTest.kt",
+      "bytes": 3298,
+      "sha256": "1c108b45944856709d902eaf0c8bfb5230e38675007fd605e754b0357966e586"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/InnerRevealReadinessTest.java",
+      "bytes": 3912,
+      "sha256": "812fbb46665f2340a34141b5c5f215dfc97b55a49f63f94fd7ff1e731b909d3b"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/LiveAngleMappingTest.kt",
+      "bytes": 1002,
+      "sha256": "02fc31de7452048bad590f9875b0c4a9559a2505123e77d5971c4f29bf74c6f9"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/LiveMirrorLayoutTest.kt",
+      "bytes": 1429,
+      "sha256": "d2f1e8ac679a34484af8eabc70f3dc5f5b1127ffaac9e59e79924fcf55ce2d02"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/NativeHomeRoutingTest.java",
+      "bytes": 4926,
+      "sha256": "371187eb42a0ad2772fc64c1619132fc5bb5bc31592f3048b52626db4353a61b"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/OnboardingPolicyTest.kt",
+      "bytes": 1626,
+      "sha256": "863f04c3b175744b0baf0133d24233d955430ef1db9515fbee3ea88baae7401e"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/PollCadenceTest.java",
+      "bytes": 635,
+      "sha256": "e26bd5f36ec5d00db9465ce87858b86476384f2eb9ae8a4b6e25ea99709ac2fd"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/PreviewExpansionPolicyTest.java",
+      "bytes": 1077,
+      "sha256": "cbb9580de45751f2247bdcf233c02aafb24d26a0167aefdf2f8190f7e7878c85"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/RenderQualityTest.java",
+      "bytes": 1517,
+      "sha256": "479549d61f41c68aafc63021a0173fbf1526aaf8d4e50fce9453c46bfe43e58f"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/RotationMigrationPolicyTest.java",
+      "bytes": 830,
+      "sha256": "b98400a791fcebb3cc1ff089ba6513de0807aaafc60b0f62ca649dbe93454819"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/RotationPreferencesTest.java",
+      "bytes": 1071,
+      "sha256": "a12361c8484904d055df3b9e14478a89e1c1f52e16ef8d2638435f139f645a77"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/RotationRecoveryProcessTest.java",
+      "bytes": 1023,
+      "sha256": "c79a1570e6a4825e4bbb237ed4283298045979f3bf344d2b08f7631509fab703"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/RotationReleaseTest.java",
+      "bytes": 1843,
+      "sha256": "12b3bec1421adc0253e804cd5733ccb965c5c94f1413eaeef0d374d5e69f4cfd"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/SupportPromptPolicyTest.java",
+      "bytes": 1705,
+      "sha256": "3bb230c539e9a08e26209a4193b7cbec3080d44ebbf1cd8bdda55748abee96c1"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/WallpaperProfileTest.java",
+      "bytes": 1002,
+      "sha256": "16c41e600ef143f44def6f59131273f4fd1ca3f6cd16be7108e15f6ec041f935"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/wallpaperlayer/AttachmentRequestTest.java",
+      "bytes": 1241,
+      "sha256": "a3777a6ea32f1eaa22382d75fae4fb561468aa9601d98c799de5121578e1d6ab"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/wallpaperlayer/HomePhotoPolicyTest.java",
+      "bytes": 818,
+      "sha256": "f632c20067e1c49f898eb9f2345db6f83092b921204132007af0e2bda4621798"
+    },
+    {
+      "path": "app/src/test/java/org/duofold/live/wallpaperlayer/WakeBridgePolicyTest.java",
+      "bytes": 1602,
+      "sha256": "7cd2bfd4bd7add9e5fd24050c62d87f63cbad87025d8d2d5545a0b6c53c9b0e1"
+    },
+    {
+      "path": "build.gradle.kts",
+      "bytes": 209,
+      "sha256": "8a751a2873ddc6b2cf22c765ffa96888e8240cf9258a86792583ad5a8a766143"
+    },
+    {
+      "path": "docs/1.9.0-ALPHA2.md",
+      "bytes": 1068,
+      "sha256": "b82fb0b8d8e276e7c969a6734dc50ec1ee82d2985ce94e81c9adf113994d7cf0"
+    },
+    {
+      "path": "docs/1.9.0-PRERELEASE.md",
+      "bytes": 2197,
+      "sha256": "440a7bf092ae2d6c5c2ef25cba8642254e95accbc19251fe37bdefbde3837f4c"
+    },
+    {
+      "path": "docs/2.0.0-CHANGELOG.md",
+      "bytes": 7765,
+      "sha256": "608ebe062225ab7cfd8d1160b88040b93010a27ec71e43e0ad1d104e7743f398"
+    },
+    {
+      "path": "docs/3.0.0-CHANGELOG.md",
+      "bytes": 6156,
+      "sha256": "79e69fce7f281d36bf34a7d1c82ea11219d057440773b116431db6746027c0fa"
+    },
+    {
+      "path": "docs/3.0.0-WALKTHROUGH.md",
+      "bytes": 1401,
+      "sha256": "1ce78cb6e153e6a0612e8477df6a30ad3fecf66ac39ef6174ffc9660d41cf61f"
+    },
+    {
+      "path": "docs/3.0.1-CHANGELOG.md",
+      "bytes": 495,
+      "sha256": "f5644d3bbcc77fda70867696cc2817622d68eee6281e51894bbbf0abc7df5767"
+    },
+    {
+      "path": "docs/3.0.2-CHANGELOG.md",
+      "bytes": 1817,
+      "sha256": "b8b8bfbaedf29c036f9a626c6ff4690d644ac753c300a0ef2d75b0e15558889c"
+    },
+    {
+      "path": "docs/3.0.2-alpha.1-LOCAL.md",
+      "bytes": 4227,
+      "sha256": "5dffe88abd6efece25d07d37ebd76a44a20ea79c868d047ced7679227772cb30"
+    },
+    {
+      "path": "docs/3.0.3-CHANGELOG.md",
+      "bytes": 987,
+      "sha256": "88d2e0c6e754754e872ff7b5aee26f9083180ca702930e958e8a5ec4cbae9e75"
+    },
+    {
+      "path": "docs/3.0.4-alpha.1-CHANGELOG.md",
+      "bytes": 737,
+      "sha256": "c6eabd0142149c08995bae5f9588c1391b9d3f5ac6c0526c3bf3d9bd71b4b801"
+    },
+    {
+      "path": "docs/3.0.4-alpha.10-CHANGELOG.md",
+      "bytes": 2120,
+      "sha256": "eaffacb3e03fd5305be4e8171d9d2f773b274900e57a8a0677cc9db1a18ee84a"
+    },
+    {
+      "path": "docs/3.0.4-alpha.11-CHANGELOG.md",
+      "bytes": 1216,
+      "sha256": "122d23613617b1fee612356c557b9a581d7f61fa085acff4959290c83ac191e0"
+    },
+    {
+      "path": "docs/3.0.4-alpha.12-CHANGELOG.md",
+      "bytes": 1573,
+      "sha256": "8c207b777fa51d23c9daa004af09b38b751fb199713176d10ff8bc0881a1e69b"
+    },
+    {
+      "path": "docs/3.0.4-alpha.13-CHANGELOG.md",
+      "bytes": 1870,
+      "sha256": "640d8a355bc5611c0cd89924392889c2beb0f526267dc351bdbd3adffb862365"
+    },
+    {
+      "path": "docs/3.0.4-alpha.14-CHANGELOG.md",
+      "bytes": 1444,
+      "sha256": "62449dae4a0f7caa4a7bbcae7d5401c75ef4b32e5b08d9212a6604f81026a344"
+    },
+    {
+      "path": "docs/3.0.4-alpha.15-CHANGELOG.md",
+      "bytes": 1889,
+      "sha256": "389b1e1280dfcff4b398907550131be87a5c492373526ec97d71a83f69a76ce2"
+    },
+    {
+      "path": "docs/3.0.4-alpha.16-CHANGELOG.md",
+      "bytes": 1716,
+      "sha256": "394b09b64a0ef39f7d1dcc74b9dfddb30faec25342113dffd4f6d9064e522057"
+    },
+    {
+      "path": "docs/3.0.4-alpha.17-CHANGELOG.md",
+      "bytes": 1410,
+      "sha256": "703292366a6e8bfafd50fa5ef7b12cd955fb1e3b5c657b65aeac6f21131e7802"
+    },
+    {
+      "path": "docs/3.0.4-alpha.18-CHANGELOG.md",
+      "bytes": 1322,
+      "sha256": "da0b637991db5a1323a21898f47fa41ed3d6d9231f0f49b0f2fa7a78c9b5e27d"
+    },
+    {
+      "path": "docs/3.0.4-alpha.19-CHANGELOG.md",
+      "bytes": 1260,
+      "sha256": "ed7c210a01e8a6eab09c4819130b1c9876631f04d1672d3574950ae5ba742a58"
+    },
+    {
+      "path": "docs/3.0.4-alpha.2-CHANGELOG.md",
+      "bytes": 785,
+      "sha256": "828d42f3ded25eca9ff4737967300d6151da0947bcd49bd115c1498725fe2faa"
+    },
+    {
+      "path": "docs/3.0.4-alpha.20-CHANGELOG.md",
+      "bytes": 1424,
+      "sha256": "4f3387ead1d4ab4316186b5785c298cd15a34b6566e194fa1a42309f395016c7"
+    },
+    {
+      "path": "docs/3.0.4-alpha.21-CHANGELOG.md",
+      "bytes": 253,
+      "sha256": "26238385a1f22d0d3d0abcece7b15da6c64edad4147ac4bb1ec01a6fc6ebe934"
+    },
+    {
+      "path": "docs/3.0.4-alpha.22-CHANGELOG.md",
+      "bytes": 925,
+      "sha256": "e5ad3d9ad465021be021270be16d1b99397c2819b8490ae3240f5869217a9ec6"
+    },
+    {
+      "path": "docs/3.0.4-alpha.23-CHANGELOG.md",
+      "bytes": 730,
+      "sha256": "38b07b9e079f9654ead755a8c62c8b61069b2a769cd98c0907bee85f3a4ba7ff"
+    },
+    {
+      "path": "docs/3.0.4-alpha.24-CHANGELOG.md",
+      "bytes": 1779,
+      "sha256": "8381ec89a1a1aebe13e6ebbf005cba3895f4dffc3ed258a5b5f006473c4c66ff"
+    },
+    {
+      "path": "docs/3.0.4-alpha.25-CHANGELOG.md",
+      "bytes": 1164,
+      "sha256": "c72df6fc132b9417322726c5c1074efef7ad5a0385c1d1e0eed2979d6b32a481"
+    },
+    {
+      "path": "docs/3.0.4-alpha.26-CHANGELOG.md",
+      "bytes": 957,
+      "sha256": "44a7cca2f473f6c0dc64a29852c90e017c2873859f129c3192bf364d84245170"
+    },
+    {
+      "path": "docs/3.0.4-alpha.27-CHANGELOG.md",
+      "bytes": 492,
+      "sha256": "419f77682908ec47aa7e1bebb5e7ab5f0b80761a5170f34dfcdfc845b618b719"
+    },
+    {
+      "path": "docs/3.0.4-alpha.28-CHANGELOG.md",
+      "bytes": 1604,
+      "sha256": "92be679c7fb627c5f1a05aa20d7033e2570710f345941e6abb9b98e107d71f9c"
+    },
+    {
+      "path": "docs/3.0.4-alpha.29-CHANGELOG.md",
+      "bytes": 1439,
+      "sha256": "9bae11fe3c9d051d884b258c67c29b43a903a3f212bc26f19391e7ae1aa245c0"
+    },
+    {
+      "path": "docs/3.0.4-alpha.3-CHANGELOG.md",
+      "bytes": 687,
+      "sha256": "3bd58efae1a15dacc0de07c1fb4c0a425c8433cab6a881fe8be1960787ff088a"
+    },
+    {
+      "path": "docs/3.0.4-alpha.4-CHANGELOG.md",
+      "bytes": 1483,
+      "sha256": "34ec79e0ca7c2532532009cf1a2e52d18920580f2a16848330c048406dc6e9c6"
+    },
+    {
+      "path": "docs/3.0.4-alpha.5-CHANGELOG.md",
+      "bytes": 1399,
+      "sha256": "352ced91e690d139a3c1a2160bf907ad57ed2b27e9a1d986209120cab977dae5"
+    },
+    {
+      "path": "docs/3.0.4-alpha.6-CHANGELOG.md",
+      "bytes": 1828,
+      "sha256": "a23adc18ccdf50b58a86d9c25f1020cfe75682056ed4ad7af071e7d20e796e91"
+    },
+    {
+      "path": "docs/3.0.4-alpha.7-CHANGELOG.md",
+      "bytes": 1780,
+      "sha256": "cd09f8fd401d32724da813d558c37d761f4e85a890bb987b02e39188cf1e88f9"
+    },
+    {
+      "path": "docs/3.0.4-alpha.8-CHANGELOG.md",
+      "bytes": 1554,
+      "sha256": "e076d0d8ef60147eae425ecbe809a972592a8c8f64f54e752d41065767abf277"
+    },
+    {
+      "path": "docs/3.0.4-alpha.9-CHANGELOG.md",
+      "bytes": 1785,
+      "sha256": "46716d5e3f81bdd223400c87176d103a612c43276c7161f628f1466c16b7e697"
+    },
+    {
+      "path": "docs/3.5.0-CHANGELOG.md",
+      "bytes": 1066,
+      "sha256": "c3244a0f43fff241044c748ab5a3badae9d0603ce7adf23078184ba31a84f19f"
+    },
+    {
+      "path": "docs/3.5.1-CHANGELOG.md",
+      "bytes": 974,
+      "sha256": "9a49504bcd8af16a673e5f304715d2df16eea012f0120eb602c836664f2e32f8"
+    },
+    {
+      "path": "docs/3.5.1-alpha.1-CHANGELOG.md",
+      "bytes": 1034,
+      "sha256": "81f22d72ba2549753bf0db579ae61238a2477a3f23935a590f4c4469e0a75484"
+    },
+    {
+      "path": "docs/3.5.1-alpha.2-CHANGELOG.md",
+      "bytes": 1063,
+      "sha256": "6ea5420939cfc63872d4998ad32934ab88f534fde79ad5e7430f8205c2d727cf"
+    },
+    {
+      "path": "docs/3.5.1-alpha.3-CHANGELOG.md",
+      "bytes": 825,
+      "sha256": "0260ee915e52e5969e18989e6e0d27b472789bab7df9e3af986ffb857fb06698"
+    },
+    {
+      "path": "docs/3.5.1-alpha.4-CHANGELOG.md",
+      "bytes": 791,
+      "sha256": "96f54d16d840128451e242655a4a4eaf1255f294dc15464128e34e9ab08d416d"
+    },
+    {
+      "path": "docs/3.5.1-alpha.5-CHANGELOG.md",
+      "bytes": 811,
+      "sha256": "068df0eb539be8841cda8d1b8d522b28a241c075b5e82354ae58be818ae6797e"
+    },
+    {
+      "path": "docs/3.5.1-alpha.6-CHANGELOG.md",
+      "bytes": 420,
+      "sha256": "078fcbbd538a330cc67a0e629ff95a43776c3053aa745e73221487a77e89e944"
+    },
+    {
+      "path": "docs/3.5.1-alpha.7-CHANGELOG.md",
+      "bytes": 522,
+      "sha256": "811a7e023afba1018b58e42c9dd544e6bb8e3c63bbbf32b9885edf2023291c2b"
+    },
+    {
+      "path": "docs/3.5.1-alpha.8-CHANGELOG.md",
+      "bytes": 1098,
+      "sha256": "22db8f734576f046a5229e3566b095133ae8f3b5ba037bfe8c98e5b170e33f73"
+    },
+    {
+      "path": "docs/3.5.1-alpha.9-CHANGELOG.md",
+      "bytes": 791,
+      "sha256": "71f07b4b1a4ee2f267d1e2d7b812710460d6544b6730a01fe41f79ac5d9e24ac"
+    },
+    {
+      "path": "docs/3.5.2-CHANGELOG.md",
+      "bytes": 1287,
+      "sha256": "543bcd0ca8b252bb6247d2579ed03c8fa130d4a640db9074ab1e9998315d8016"
+    },
+    {
+      "path": "docs/3.5.2-alpha.1-CHANGELOG.md",
+      "bytes": 597,
+      "sha256": "ae2fb26d33260556048944045f00521c80f4da7f014b5657cec93853eff549d6"
+    },
+    {
+      "path": "docs/3.5.2-alpha.2-CHANGELOG.md",
+      "bytes": 1339,
+      "sha256": "ef7214ee29cbed46042b0f52b50909e5c38972061cc29f70ace786008b696554"
+    },
+    {
+      "path": "docs/3.5.2-alpha.3-CHANGELOG.md",
+      "bytes": 1147,
+      "sha256": "3107114e18fd7ddb796d7bd5dd65d9389cb475214f002c60afc5effa6890ccf9"
+    },
+    {
+      "path": "docs/3.5.2-alpha.4-CHANGELOG.md",
+      "bytes": 406,
+      "sha256": "43f17bbe12fd3a1f139ea11754c1c3daa48f33e5bf0a7f1821168c45f259753d"
+    },
+    {
+      "path": "docs/3.5.2-alpha.5-CHANGELOG.md",
+      "bytes": 1014,
+      "sha256": "b2975ce46dea8216810fbbe73996db3a8b61182d113ae03c03f6f86e75d69e1b"
+    },
+    {
+      "path": "docs/3.5.2-alpha.6-CHANGELOG.md",
+      "bytes": 370,
+      "sha256": "feb71a092e57359f9b0c17445e5da109b3d66429d95e750ba1c09ea07230ee64"
+    },
+    {
+      "path": "docs/3.5.2-alpha.7-CHANGELOG.md",
+      "bytes": 642,
+      "sha256": "18fb50c90e7942cca1090c7db2860dc71c26f1efffc807a4b648f18da535f455"
+    },
+    {
+      "path": "docs/ALPHA10-INNER-SYSTEM-UI.md",
+      "bytes": 1761,
+      "sha256": "729f7300a0db876d149867e241f3fddf7cd8d3c79232583ddba11d9265d578f4"
+    },
+    {
+      "path": "docs/ALPHA11-DISPLAY-API-COMPATIBILITY.md",
+      "bytes": 1033,
+      "sha256": "86c728f4413d5a25523e90d8578adfdb38019c87630b7b866cde33fa38ee8625"
+    },
+    {
+      "path": "docs/ALPHA12-INDEPENDENT-DISPLAY-INSPECTION.md",
+      "bytes": 962,
+      "sha256": "ee7f34e5333044e0fd99a8d3e3798f269553ecbd8bae982bc7d532ee4c20dea2"
+    },
+    {
+      "path": "docs/ALPHA13-HANDOFF-FADE.md",
+      "bytes": 2214,
+      "sha256": "d9f925e8565d7c16729955ee55a0c42e0e6af1a40095761a4593be2297f8fea0"
+    },
+    {
+      "path": "docs/ALPHA14-DESTINATION-FADE.md",
+      "bytes": 1509,
+      "sha256": "c35d91e328ad24e6382438d51ccacfbe545d17905b56e3870358ee18b001b6c5"
+    },
+    {
+      "path": "docs/ALPHA5-RECOVERY.md",
+      "bytes": 2685,
+      "sha256": "362291b9963c7ebf4a2d585af6aa856e418a9960fbfaeb56488ef4d050e2a757"
+    },
+    {
+      "path": "docs/ALPHA6-NATIVE-CONTINUITY.md",
+      "bytes": 1748,
+      "sha256": "1890768823cf727d6cb0358e49b40f354083c953d1040ce9267e09d52b7fe43f"
+    },
+    {
+      "path": "docs/ALPHA7-NATIVE-CONTINUITY.md",
+      "bytes": 1853,
+      "sha256": "931a9024ad6f0621b7f7d8bb78a3487dfa5043a71fd500b83f64be2b88d0bf53"
+    },
+    {
+      "path": "docs/ALPHA8-INNER-OVERLAY.md",
+      "bytes": 1066,
+      "sha256": "8174afc13e4f862ab718fec0df33fb05e3aabe89a5f8580a403d9587c97ca558"
+    },
+    {
+      "path": "docs/ALPHA9-ALWAYS-KEEP-AWAKE.md",
+      "bytes": 2205,
+      "sha256": "02e956b59ea23a961205dd4b624af3b173c7d14f4f59e73eb938fbaff9b50195"
+    },
+    {
+      "path": "docs/ANIMATION-BASELINE.md",
+      "bytes": 950,
+      "sha256": "b68728fb7aa86154bc10b05093878c325b2b25a242975604eaae2b5263b6f26f"
+    },
+    {
+      "path": "docs/FIRMWARE-DISPLAY-FINDINGS.md",
+      "bytes": 4777,
+      "sha256": "7ebd8149e9307d69273bb4d2b7f338d5e3e61defc7ab9552c8864688726d558e"
+    },
+    {
+      "path": "docs/FOLD-ROTATION-HOLD.md",
+      "bytes": 2387,
+      "sha256": "6f3ca786065989ab3d771e9f466f6125b61754c35cef1b85efa82240671ba59c"
+    },
+    {
+      "path": "docs/FOLD7-PROFILE-NOTES.md",
+      "bytes": 1254,
+      "sha256": "5cc5d4d2b760b803123a94664fba6a2a535e86efccd2c18ba9240fa794e0783b"
+    },
+    {
+      "path": "docs/FUTURE_WORK.md",
+      "bytes": 3663,
+      "sha256": "26c95fbacaf57678a3f5c8c4d7bce0572595bf44b430a0480d59ebad53006ad3"
+    },
+    {
+      "path": "docs/NEXT-PRIORITIES.md",
+      "bytes": 2172,
+      "sha256": "d8bae04302ac27b96d49c300e78441394107f6d03c3e731a6e925badeec77456"
+    },
+    {
+      "path": "docs/PUBLISH-TO-GITHUB.md",
+      "bytes": 3865,
+      "sha256": "fec1ec2c83a465f4862f965488561b1296cf8c84d04d148f723a4c5ade9eaf2c"
+    },
+    {
+      "path": "docs/RELEASE-NOTES.md",
+      "bytes": 1735,
+      "sha256": "dc54ac612e063e42a6efe43b5fc8088da833713568c8b9f5f57fca2599dadca3"
+    },
+    {
+      "path": "docs/SHIZUKU-HELP-SOURCES.md",
+      "bytes": 1676,
+      "sha256": "95f9d24c85d199c12c6f186e4c3c3c73ab1fb3c24267fd78ea06c6c3f1504166"
+    },
+    {
+      "path": "docs/assets/duofold-live-logo.png",
+      "bytes": 19361,
+      "sha256": "e45ce1c09768ec416287a33d56413b4a5fe73f2e04e8854f563a7ea350c8db97"
+    },
+    {
+      "path": "docs/assets/duofold-live-logo.svg",
+      "bytes": 515,
+      "sha256": "aa2686a4dfd4c3376b9e365f645ecc4e81dfdad12b80515186a2368c75c7ad92"
+    },
+    {
+      "path": "gradle.properties",
+      "bytes": 196,
+      "sha256": "db33d6013cb77b0f4656ba24447f5ece13687f1eba8ed9692f48471af2f6a38c"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "bytes": 47505,
+      "sha256": "7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "bytes": 251,
+      "sha256": "cdab1ffb439219b1db125e3c99a86cf2424f8762b9b3faa404ed061e3635ecde"
+    },
+    {
+      "path": "gradlew",
+      "bytes": 8656,
+      "sha256": "a5a5c199ba02189ae8c46a334223371a20599d9c298ef65e7540ede4a3f72d59"
+    },
+    {
+      "path": "gradlew.bat",
+      "bytes": 2766,
+      "sha256": "59328c7a17f673b1a63040bfb380a0c749e5d6df3406f7f18641060314cd9aa1"
+    },
+    {
+      "path": "reference/iphone-duo/LICENSE",
+      "bytes": 1063,
+      "sha256": "7317c3e2ae6c8baca2b82edf844b73c58e7e0df41adde8864806ba3c4bffb121"
+    },
+    {
+      "path": "reference/iphone-duo/main.js",
+      "bytes": 15363,
+      "sha256": "16893748f7b77ec564cd3de15be8d69ce288728ad8f81687e9085a4758ec7390"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "bytes": 273,
+      "sha256": "33ae192c02d22963a9d16f9b48ffa693d81d6fbb74903818d92ea495a1f9d766"
+    },
+    {
+      "path": "tools/check_inner_stretch.py",
+      "bytes": 2795,
+      "sha256": "2ca0330617453278cb7175b252f3d9b4a47c4ec6c3752c77f355408f3fbd1e0e"
+    },
+    {
+      "path": "upstream/LICENSE",
+      "bytes": 1082,
+      "sha256": "09661d562c5f7538e0a4ef2a066ad5bdb8c5c379f64a7efc1d3bb294c5b0d51e"
+    },
+    {
+      "path": "upstream/SOURCE.json",
+      "bytes": 251,
+      "sha256": "0cb802c2358150d4c9304407b7cdd590ddb5074cbb28efa709d5cb757318141a"
+    },
+    {
+      "path": "upstream/THIRD_PARTY_NOTICES.md",
+      "bytes": 3600,
+      "sha256": "814fbb78b0944d24de408546febe373d39f8ddc40fc88efee95bfb8c0e2c52db"
+    },
+    {
+      "path": "upstream/debug/DuoMotionTrace.kt",
+      "bytes": 2029,
+      "sha256": "471bda41da3d5dad1c399999bb31fc9e163952714f08acdb950214cebc488daa"
+    },
+    {
+      "path": "upstream/debug/FoldMotionActivity.kt",
+      "bytes": 20581,
+      "sha256": "0228a472880e3d85c9af174d1b0bb241e4bb34621055f8750ebdcfad47cf35ec"
+    },
+    {
+      "path": "upstream/debug/FoldMotionCsv.kt",
+      "bytes": 2189,
+      "sha256": "4738a916ede7bca22decf1b3634e2e060b998ae7ac1f7dfe315cf706c47c9396"
+    },
+    {
+      "path": "upstream/debug/FoldMotionIntegrator.kt",
+      "bytes": 2896,
+      "sha256": "169926b222b7bf3fe0924d126bb15adc417975ca9bfe911da70cff96383cb9d3"
+    },
+    {
+      "path": "upstream/debug/FoldProbeActivity.kt",
+      "bytes": 23237,
+      "sha256": "bb11b37b3351368a4ebcadd2e90c9bcdb6be5da0efe4947fad585d6b3129f0fc"
+    },
+    {
+      "path": "upstream/debug/FoldRenderExperiment.kt",
+      "bytes": 22461,
+      "sha256": "497506570dae4d57989f3edea2b1e2026c784bc420d0c9dec43ff1ff4be340c0"
+    },
+    {
+      "path": "upstream/main/FoldAvoidance.kt",
+      "bytes": 4460,
+      "sha256": "a2d6126e0ceba874c32645b0b323cee6127a1c71899167694f0c1aef317ea097"
+    },
+    {
+      "path": "upstream/main/FoldBridgeActivity.kt",
+      "bytes": 4080,
+      "sha256": "71bfd7d8af5ed71fbaa5dd5005ecb3c5c03d3b965c7771c31da810c11c3d05a1"
+    },
+    {
+      "path": "upstream/main/FoldTransition.kt",
+      "bytes": 30762,
+      "sha256": "37e7913702b355970aa05777087a42dd4410767eaed11b391255401b2bd09446"
+    },
+    {
+      "path": "upstream/main/FolderEditing.kt",
+      "bytes": 5209,
+      "sha256": "c66cfd49ff2a893a8ce260c5c9bfc4e809ec2fca6cb0e9b562b73414de75a8f5"
+    },
+    {
+      "path": "upstream/main/FolderPanel.kt",
+      "bytes": 11018,
+      "sha256": "421d885e47837329b1ba4af329a85f38064d73cde8e68313376e106f345b5056"
+    },
+    {
+      "path": "upstream/main/HingeTracker.kt",
+      "bytes": 3902,
+      "sha256": "024c2183010eff56fb8a8fcd3dcbdcca4f8839ba2bad785f52070723a64eb2c9"
+    },
+    {
+      "path": "upstream/main/SizeClass.kt",
+      "bytes": 778,
+      "sha256": "181cba7da907df3c4cc008a019c9aca2f5aa7c5bd5b936ba6e58a1a96ded4ae6"
+    },
+    {
+      "path": "upstream/release/DuoMotionTrace.kt",
+      "bytes": 825,
+      "sha256": "9dfedc11f884c498631bb4ce0e200664fc5e2b61da4fad21f993f246d70c61af"
+    },
+    {
+      "path": "upstream/release/FoldRenderExperiment.kt",
+      "bytes": 271,
+      "sha256": "da1b1f386bbe6adc3337d82f612bf080d377831d4e8f2d7fdf0d7c915099f263"
+    },
+    {
+      "path": "upstream/test/FoldDisplacementTest.kt",
+      "bytes": 1352,
+      "sha256": "f801875f46809317e148e6e260d75b40eb6d78b04a0fa5324882367c0739c6e5"
+    },
+    {
+      "path": "upstream/test/FoldGeometryTest.kt",
+      "bytes": 1306,
+      "sha256": "30414ec60ff6c7f4685c50371268ac37e2ec4bb9559756e9babcf24a231546c8"
+    },
+    {
+      "path": "upstream/test/FolderEditingTest.kt",
+      "bytes": 5006,
+      "sha256": "5682576b46cb4ff76d90f3146e2436a6f3d68a9de86b72402b1c84080a7600c6"
+    },
+    {
+      "path": "upstream/test/HingeTrackerTest.kt",
+      "bytes": 3298,
+      "sha256": "1c108b45944856709d902eaf0c8bfb5230e38675007fd605e754b0357966e586"
+    },
+    {
+      "path": "upstream/testDebug/FoldMotionIntegratorTest.kt",
+      "bytes": 2033,
+      "sha256": "68ec35623d77ff0f42c7ba85967020d28b6b800696d5c646b7a5f06da2394435"
+    },
+    {
+      "path": "wallpaper-stubs/android/window/DisplayAreaAppearedInfo.java",
+      "bytes": 209,
+      "sha256": "6d4a91034773f73a685fccf68a431cafd069f7edd023e77e4b45aedc398a0a51"
+    },
+    {
+      "path": "wallpaper-stubs/android/window/DisplayAreaInfo.java",
+      "bytes": 215,
+      "sha256": "8f83f5b068a3772579720bf66af306d84c029b07e64cc8b604227b3cc12b2dc3"
+    },
+    {
+      "path": "wallpaper-stubs/android/window/DisplayAreaOrganizer.java",
+      "bytes": 555,
+      "sha256": "24ce819d9f89e615b527c077d33efaefa64f2f34e20e76382e71d9612f89360d"
+    },
+    {
+      "path": "wallpaper-stubs/android/window/WindowContainerToken.java",
+      "bytes": 133,
+      "sha256": "5a57e480a025b8edd1b5cf1c05e319eae845e0f7d019c7071aafa99f24f343bb"
+    }
+  ]
+}

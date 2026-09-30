@@ -158,6 +158,8 @@ private fun ScreenContent(
                     progress = previewProgress,
                     onScrub = viewModel::scrubPreview,
                     hasHingeSensor = ui.device?.hasHingeSensor == true,
+                    evidence = viewModel.evidence,
+                    onTrackDuoSensor = viewModel::trackDuoPreview,
                     onSetLiveWallpaper = { onOpenSettings(viewModel.liveWallpaperIntent()) },
                 )
 
