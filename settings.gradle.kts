@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "FLab"
-include(":app")
+include(":app", ":duo-engine")

@@ -82,7 +82,16 @@ fun FoldMotionScreen(
         MotionChannelMapper.map(frame, profile.motion)
     }
 
+    val globalContext = androidx.compose.ui.platform.LocalContext.current
     Column(modifier = modifier.fillMaxWidth()) {
+        FLabCard(Modifier.fillMaxWidth()) {
+            SectionLabel("Duo Global · Shizuku")
+            Spacer(Modifier.height(10.dp))
+            Text("Efecto al plegar sobre Home y otras apps. Configura Shizuku, el fondo Samsung y accesibilidad. Captura local; contenido protegido excluido.", color = FLabColors.textSecondary)
+            Spacer(Modifier.height(12.dp))
+            androidx.compose.material3.Button(onClick = { org.duofold.live.GlobalDuo.open(globalContext) }) { Text("Configurar efecto global") }
+        }
+        Spacer(Modifier.height(20.dp))
         ScreenHeader(
             title = "Fold Motion",
             subtitle = "Drag to move the device through its opening. " +

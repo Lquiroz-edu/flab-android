@@ -32,6 +32,7 @@ class FLabApplication : Application() {
         super.onCreate()
         settings = FLabSettings(this)
         core = FLabCore(applicationContext, settings, scope)
+        org.duofold.live.GlobalDuo.initialize(this)
     }
 
     override fun onTerminate() {

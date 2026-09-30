@@ -230,7 +230,9 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
 
     // ------------------------------------------------------------------ actions
 
-    fun setEnabled(enabled: Boolean) = if (enabled) core.enable() else core.disable()
+    fun setEnabled(enabled: Boolean) {
+        if (enabled) core.enable() else { org.duofold.live.GlobalDuo.stop(getApplication()); core.disable() }
+    }
 
     /**
      * The Home setup checklist's first tap (DoD 18, 43): turns the engine on and records the
@@ -263,6 +265,7 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun setSystemEffectsEnabled(enabled: Boolean) {
         val context = getApplication<Application>()
+        if (enabled) org.duofold.live.GlobalDuo.stop(context)
         settings.setSystemEffectsEnabled(enabled)
         if (enabled && SystemAccess.canDrawOverlays(context) &&
             SystemAccess.isAccessibilityServiceEnabled(context)
