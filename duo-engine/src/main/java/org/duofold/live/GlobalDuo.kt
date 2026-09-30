@@ -31,6 +31,7 @@ object GlobalDuo {
  fun open(context:Context){context.startActivity(Intent(context,MainActivity::class.java))}
  fun stop(context:Context){
   context.getSharedPreferences("standalone",0).edit().putBoolean("enabled",false).apply()
+  runCatching { org.duofold.live.wallpaperlayer.WallpaperRestore.setEnabled(context,false) }
   StandaloneService.instance?.restart()
   context.stopService(Intent(context,FoldBackgroundService::class.java))
   FoldAwakeDefault.restore(context)

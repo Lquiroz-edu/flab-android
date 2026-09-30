@@ -140,7 +140,7 @@ class StandaloneService : AccessibilityService(), DisplayManager.DisplayListener
     }}
     private fun hide(){view?.alpha=0f;active=false;handler.removeCallbacks(captureTask);captureQueued=false}
     override fun onAccessibilityEvent(event:AccessibilityEvent)=Unit
-    private fun requestCapture()=Unit // Retained host callback; this release never captures pixels.
+    private fun requestCapture()=Unit // Retained host callback; this service does not capture; the Shizuku helper captures excluded display layers.
     private fun updateDisplay(){
         if(view==null)return
         val display=displays.getDisplay(0)?:return

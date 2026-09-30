@@ -148,11 +148,11 @@ class SetupActivity : ComponentActivity() {
        2->{
         Text("Connect Shizuku",style=MaterialTheme.typography.headlineSmall)
         Text("FoldInteractive is part of Samsung’s built-in wallpaper system, not a separate download. Duo needs its interactive fold wallpaper on both HOME screens. Other models may not contain a compatible profile.")
-        Text("Shizuku gives Duo the access needed to install the fold wallpaper on both screens and read live hinge angles. After authorization, tap Apply required wallpapers below. Wallpaper compatibility is checked separately.")
+        Text("Shizuku supplies live hinge angles and local non-protected display captures for the global glass effect. It also applies the Samsung wallpapers when you press Apply required wallpapers. Captures are not uploaded; secure windows and the lock screen are excluded.")
         Text(if(authorized)"Shizuku connected and authorized" else if(shizuku)"Shizuku connected · authorization needed" else "Duo has not received a Shizuku connection")
-        Button(onClick={link("https://github.com/thejaustin/ShizukuPlus/releases")}){Text("Download Shizuku+ (Recommended)")}
-        Text("If you installed Shizuku, uninstall it first to avoid conflicts. Install Shizuku+ from the link above, start it using wireless or USB debugging (ADB mode), then authorize Duo again.",style=MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick={val intent=packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api");if(intent!=null)open(intent)else link("https://github.com/thejaustin/ShizukuPlus/releases")}){Text("Open installed Shizuku")}
+        Button(onClick={link("https://shizuku.rikka.app/download/")}){Text("Obtener Shizuku")}
+        Text("Use your installed Shizuku or obtain it from the official site. Start it through wireless or USB debugging (ADB mode), then authorize F/LAB.",style=MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick={val intent=packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api");if(intent!=null)open(intent)else link("https://shizuku.rikka.app/download/")}){Text("Open installed Shizuku")}
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
          FilterChip(selected=!usb,onClick={usb=false},label={Text("Wireless")})
          FilterChip(selected=usb,onClick={usb=true},label={Text("USB / computer")})
