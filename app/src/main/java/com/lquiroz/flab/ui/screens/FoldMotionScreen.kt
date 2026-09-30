@@ -62,6 +62,8 @@ fun FoldMotionScreen(
     progress: Float,
     onScrub: (Float) -> Unit,
     hasHingeSensor: Boolean,
+    evidence: kotlinx.coroutines.flow.Flow<com.lquiroz.flab.motion.FoldEvidence>,
+    onTrackDuoSensor: (Boolean) -> Unit,
     onSetLiveWallpaper: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,6 +89,9 @@ fun FoldMotionScreen(
                 "The treatment follows your finger the way it follows the hinge.",
         )
         Spacer(Modifier.height(20.dp))
+
+        DuoReferenceLab(evidence, onTrackDuoSensor)
+        Spacer(Modifier.height(14.dp))
 
         FLabCard(Modifier.fillMaxWidth()) {
             SectionLabel("Preview")
@@ -142,7 +147,7 @@ fun FoldMotionScreen(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = if (hasHingeSensor) {
-                    "This device reports a continuous hinge angle, so motion is driven directly " +
+                    "This device exposes a hinge-angle sensor. Its readings may be discrete; motion is driven " +
                         "by how far the device is open."
                 } else {
                     "This device reports posture changes only. Motion is interpolated between " +

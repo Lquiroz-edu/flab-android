@@ -12,8 +12,8 @@ android {
         applicationId = "com.lquiroz.flab"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 20
+        versionName = "0.7.0-duo-preview"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

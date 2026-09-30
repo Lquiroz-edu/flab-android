@@ -195,6 +195,18 @@ class FLabViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = FLabUiState(device = deviceReport()),
     )
 
+    private val duoPreviewOwner = Any()
+
+    fun trackDuoPreview(enabled: Boolean) {
+        if (enabled) core.requestContinuousTracking(duoPreviewOwner)
+        else core.releaseContinuousTracking(duoPreviewOwner)
+    }
+
+    override fun onCleared() {
+        core.releaseContinuousTracking(duoPreviewOwner)
+        super.onCleared()
+    }
+
     val evidence = core.evidence
 
     // ------------------------------------------------------------------ navigation
