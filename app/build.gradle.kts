@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "com.lquiroz.flab"
-        minSdk = 26
+        minSdk = 34
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.7.0-duo-preview"
+        versionCode = 21
+        versionName = "0.8.0-duo-global"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -56,7 +56,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -102,6 +103,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":duo-engine"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.activity.compose)
