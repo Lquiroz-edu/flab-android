@@ -73,7 +73,7 @@ public final class LiveAngles {
  private static String rateSummary="Collecting polling rates";
  private long rateStarted;private int ratePolls,rateReplies,rateChanges,rateReceived;
  public static volatile String readerDiagnostics="Not connected";
- public static String latencyReport(){return "Angle poll target period: 4 ms; last round trip: "+roundTripMs+" ms; "+rateSummary;}
+ public static String latencyReport(){return "Angle poll target period: adaptive 8/32 ms; last round trip: "+roundTripMs+" ms; "+rateSummary;}
  public static void handoffReady(){LiveAngles self=current;if(self==null)return;self.main.post(()->{
   if(!self.running)return;
   if(self.pollInFlight){self.urgentPoll=true;return;}

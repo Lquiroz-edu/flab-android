@@ -12,19 +12,19 @@ object GlobalDuo {
    // Seed onboarding BEFORE defaults so settings never masquerade as a legacy install.
    c.getSharedPreferences("first_run",0).edit().putInt("state",1).putInt("step",1).putBoolean("wallpaper_verified",false).commit()
    p.edit().putBoolean("flab_global_initialized",true).putBoolean("enabled",false)
-    .putInt("content_fps",60).putBoolean("full_resolution",false).putInt("antialias_method_v2",0)
+    .putInt("content_fps",60).putBoolean("full_resolution_glass",false).putInt("antialias_method_v2",0)
     .putString("animation_mode",AnimationModePolicy.DEFAULT).putString("animation_style","duo")
-    .putBoolean("cover_preview",true).putBoolean("dual",false).putFloat("end_stretch",1.25f).putFloat("intensity",1f).commit()
+    .putBoolean("rotation_repair_v1_complete",true).putBoolean("cover_preview",true).putBoolean("dual",false).putFloat("end_stretch",1.25f).putFloat("intensity",1f).commit()
   }
   listener=SharedPreferences.OnSharedPreferenceChangeListener{prefs,key->
    if(key=="enabled"&&prefs.getBoolean("enabled",false)){
-    c.getSharedPreferences("flab_settings",0).edit().putBoolean("system_effects_enabled",false).apply()
+    c.getSharedPreferences("flab_settings",0).edit().putBoolean("system_effects_enabled",false).putBoolean("enabled",true).apply()
     runCatching{c.stopService(Intent().setClassName(c,"com.lquiroz.flab.system.FLabOverlayService"))}
    }
    if(key=="enabled"&&!prefs.getBoolean("enabled",false))FoldAwakeDefault.restore(c)
   }
   p.registerOnSharedPreferenceChangeListener(listener)
-  if(p.getBoolean("enabled",false))c.getSharedPreferences("flab_settings",0).edit().putBoolean("system_effects_enabled",false).apply()
+  if(p.getBoolean("enabled",false))c.getSharedPreferences("flab_settings",0).edit().putBoolean("system_effects_enabled",false).putBoolean("enabled",true).apply()
   if(!p.getBoolean("enabled",false))FoldAwakeDefault.restore(c)
   org.duofold.live.wallpaperlayer.WallpaperRestore.resume(c)
  }

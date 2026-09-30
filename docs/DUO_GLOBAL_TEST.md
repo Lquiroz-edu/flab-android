@@ -9,7 +9,7 @@ Secure windows, the lock screen, OEM display policy and Samsung's native black
 handoff frames impose limits. This build does not claim to eliminate those frames.
 
 ## Install / setup
-1. Install this APK over the 0.7.0 test (same package and CI debug signing key).
+1. Install the APK. CI uses a temporary test signing key; if Android reports a signature conflict with 0.7, stop its effects first and uninstall that test before installing this build (local settings will be cleared).
 2. Start Shizuku in ADB mode through wireless debugging and authorize F/LAB.
 3. Open F/LAB → Fold Motion → Configurar efecto global. Complete the wizard:
    Samsung wallpaper angle source on both panels, overlay permission, notification
@@ -41,6 +41,6 @@ handoff frames impose limits. This build does not claim to eliminate those frame
   stops Duo Global, keeping a single compositor in charge.
 
 The rate defaults and caps are policy limits, not measured device FPS. CI validates
-unit tests, lint and compilation. Battery use, frame pacing and firmware-specific
+unit tests, lint, debug compilation and the R8/resource-shrunk release build. Battery use, frame pacing and firmware-specific
 hidden API behavior require measurements on the physical Fold. Do not claim this
 is the fastest possible implementation without those results.

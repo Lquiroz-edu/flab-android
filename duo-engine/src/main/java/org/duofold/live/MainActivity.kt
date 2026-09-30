@@ -274,7 +274,7 @@ class MainActivity:ComponentActivity(){
         if(rotationRepair.isNotEmpty())Text(rotationRepair,style=MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         Text("Keep cover awake on close",style=MaterialTheme.typography.titleMedium)
-        Text("Always ON. Saved across updates and checked in the background, including when the animation is off. Reconnects automatically when authorized Shizuku becomes available.",style=MaterialTheme.typography.bodySmall)
+        Text("Applies while the global animation is enabled. Stopping restores the previous Samsung fold policy; Shizuku must remain connected for restoration.",style=MaterialTheme.typography.bodySmall)
         Text("Phone still locks when folded? Open Samsung Settings, search for “Lock when folded”, and turn it OFF. Return to Home and fold again to test. This Samsung setting can override Keep Awake.",style=MaterialTheme.typography.bodySmall)
         OutlinedButton(onClick={FoldAwakeDefault.reconnect();FoldAwakeDefault.tick(this@MainActivity);startBackground()}){Text("Recheck keep-awake now")}
         TextButton(onClick={developer=!developer}){Text("☰  Developer settings")}

@@ -213,7 +213,7 @@ internal class FrostSurface(context:Context,private val preview:Boolean=false,pr
   if(paintedEffect && (!LiveAngles.fresh() || !LiveAngles.effectAllowed || (!inner && targetAngle<=0f))){
    amount=0f;renderedAngle=Float.NaN;requestDraw()
   }
-  postDelayed(this,100)
+  postDelayed(this,if(paintedEffect)100 else 1000)
  }}
  private var openThreshold=172f
  private var smoothingMs=30f
